@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SHADOW ESCAPE 3D</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; background: #000; touch-action: none; }
+        #ui { position: absolute; top: 15px; left: 15px; color: white; pointer-events: none; z-index: 5; text-shadow: 2px 2px #000; }
+        
+        /* Map & Bars */
+        #minimap { position: absolute; top: 15px; right: 15px; width: 120px; height: 120px; background: rgba(0,0,0,0.7); border: 2px solid #444; }
+        #stamina-container { width: 120px; height: 8px; background: #333; margin-top: 10px; border: 1px solid #000; }
+        #stamina-bar { width: 100%; height: 100%; background: #00ff00; transition: width 0.1s; }
+
+        /* Controls */
+        .controls { position: absolute; bottom: 30px; width: 100%; display: flex; justify-content: space-evenly; align-items: center; z-index: 20; }
+        .btn { width: 65px; height: 65px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; user-select: none; }
+        .btn:active { background: rgba(255,255,255,0.4); scale: 0.95; }
+        #btn-fire { background: rgba(0,255,255,0.2); border-color: #00ffff; }
+        #btn-sprint { background: rgba(255,165,0,0.2); border-color: orange; }
+
+        /* Overlays */
+        #static-overlay { position: fixed; top:0; left:0; width:100vw; height:100vh; background: url('https://media.giphy.com/media/oEI9uWUicGLeE/giphy.gif'); opacity: 0; pointer-events: none; z-index: 10; }
+        #jumpscare { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; display: none; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
+        #scare-image { width: 100%; height: 100%; background: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJpNmR4Znd3bmh3Znd3bmh3Znd3bmh3Znd3bmh3Znd3bmh3Znd3JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpxPucK8G0ne/giphy.gif'); background-size: cover; background-position: center; }
+        #game-over-text { position: absolute; text-align: center; color: red; }
+    </style>
+</head>
+<body>
+
+<div id="static-overlay"></div>
+<div id="ui">
+    <div id="status">FIND THE KEY</div>
+    <div id="inventory">KEYS: 0/1</div>
+    <div id="stamina-container"><div id="stamina-bar"></div></div>
+</div>
+
+<canvas id="minimap"></canvas>
+
+<div class="controls">
+    <div class="btn" id="btn-left">L</div>
+    <div class="btn" id="btn-up">UP</div>
+    <div class="btn" id="btn-right">R</div>
+    <div class="btn" id="btn-sprint">RUN</div>
+    <div class="btn" id="btn-fire">FLASH</div>
+</div>
+
+<div id="jumpscare">
+    <div id="scare-image"></div>
+    <div id="game-over-text">
+        <h1 style="font-size: 3rem;">TAKEN</h1>
+        <button onclick="location.reload()" style="padding: 10px 20px; background: red; color: white; border: none; font-family: inherit; cursor: pointer;">RETRY</button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+    // --- Configuration & State ---
+    const mazeSize = 15; // Must be odd
+    const wallSize = 2;
+    let scene, camera, renderer, villain, key, door;
+    let walls = [];
+    let hasKey = false, isSprinting = false, canShoot = true, isGameOver = false;
+    let stamina = 100, moveForward = false, moveLeft = false, moveRight = false;
+    const playerSpeed = 0.08, villainSpeed = 0.035;
+
+    // --- Maze Generator (DFS) ---
+    class Maze {
+        constructor(size) {
+            this.size = size;
+            this.grid = Array(size).fill().map(() => Array(size).fill(1));
+            this.gen(1, 1);
+        }
+        gen(x, y) {
+            this.grid[y][x] = 0;
+            const d = [[0,2],[0,-2],[2,0],[-2,0]].sort(() => Math.random()-0.5);
+            for(let [dx,dy] of d) {
+                let nx=x+dx, ny=y+dy;
+                if(nx>0 && nx<this.size-1 && ny>0 && ny<this.size-1 && this.grid[ny][nx]===1) {
+                    this.grid[y+dy/2][x+dx/2] = 0;
+                    this.gen(nx, ny);
+                }
+            }
+        }
+    }
+
+    init();
+    animate();
+
+    function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+        scene.fog = new THREE.Fog(0x000000, 1, 10);
+
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        camera.position.set(-mazeSize + 2, 1.2, -mazeSize + 2);
+
+        renderer = new THREE.WebGLRenderer({ antialias: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const light = new THREE.PointLight(0xffffff, 1, 8);
+        camera.add(light);
+        scene.add(camera);
+
+        // Build Maze
+        const mazeData = new Maze(mazeSize);
+        const wallGeo = new THREE.BoxGeometry(wallSize, 3, wallSize);
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+
+        for(let y=0; y<mazeSize; y++) {
+            for(let x=0; x<mazeSize; x++) {
+                let px = x*wallSize - (mazeSize*wallSize)/2;
+                let pz = y*wallSize - (mazeSize*wallSize)/2;
+                if(mazeData.grid[y][x] === 1) {
+                    const w = new THREE.Mesh(wallGeo, wallMat);
+                    w.position.set(px, 1.5, pz);
+                    scene.add(w);
+                    walls.push(w);
+                } else if(x === mazeSize-2 && y === mazeSize-2) {
+                    // Place Key
+                    key = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.3,0.3), new THREE.MeshBasicMaterial({color:0xffff00}));
+                    key.position.set(px, 0.5, pz);
+                    scene.add(key);
+                } else if(x === 1 && y === 1) {
+                    // Place Door
+                    door = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2, 0.2), new THREE.MeshStandardMaterial({color:0x442200}));
+                    door.position.set(px, 1, pz - 1);
+                    scene.add(door);
+                }
+            }
+        }
+
+        villain = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.5, 0.5), new THREE.MeshBasicMaterial({color:0x000000}));
+        villain.position.set(0, 1.25, 0);
+        scene.add(villain);
+
+        setupControls();
+    }
+
+    function setupControls() {
+        const bind = (id, fnStart, fnEnd) => {
+            const el = document.getElementById(id);
+            el.ontouchstart = (e) => { e.preventDefault(); fnStart(); };
+            el.ontouchend = (e) => { e.preventDefault(); if(fnEnd) fnEnd(); };
+        };
+        bind('btn-up', () => moveForward = true, () => moveForward = false);
+        bind('btn-left', () => moveLeft = true, () => moveLeft = false);
+        bind('btn-right', () => moveRight = true, () => moveRight = false);
+        bind('btn-sprint', () => isSprinting = true, () => isSprinting = false);
+        bind('btn-fire', () => useWeapon());
+    }
+
+    function useWeapon() {
+        if (!canShoot || isGameOver) return;
+        canShoot = false;
+        const flash = new THREE.PointLight(0x00ffff, 10, 15);
+        flash.position.copy(camera.position);
+        scene.add(flash);
+        
+        if (camera.position.distanceTo(villain.position) < 6) {
+            villain.visible = false;
+            setTimeout(() => { 
+                villain.visible = true; 
+                villain.position.set((Math.random()-0.5)*20, 1.25, (Math.random()-0.5)*20);
+            }, 4000);
+        }
+
+        document.getElementById('status').innerText = "RECHARGING...";
+        setTimeout(() => { scene.remove(flash); }, 200);
+        setTimeout(() => { canShoot = true; document.getElementById('status').innerText = "READY"; }, 6000);
+    }
+
+    function animate() {
+        if(isGameOver) return;
+        requestAnimationFrame(animate);
+
+        // Movement & Collision
+        let speed = isSprinting && stamina > 0 ? playerSpeed * 2 : playerSpeed;
+        if(isSprinting && moveForward) stamina -= 1; else stamina = Math.min(100, stamina + 0.5);
+        document.getElementById('stamina-bar').style.width = stamina + "%";
+
+        if(moveLeft) camera.rotation.y += 0.04;
+        if(moveRight) camera.rotation.y -= 0.04;
+        if(moveForward) {
+            let dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+            let nextPos = camera.position.clone().addScaledVector(dir, speed);
+            let collision = false;
+            for(let w of walls) { if(nextPos.distanceTo(w.position) < 1.2) collision = true; }
+            if(!collision) camera.position.copy(nextPos);
+        }
+
+        // Villain AI & Static
+        const d = camera.position.distanceTo(villain.position);
+        document.getElementById('static-overlay').style.opacity = Math.max(0, 1 - (d/10)) * 0.7;
+        if(villain.visible) {
+            const vDir = new THREE.Vector3().subVectors(camera.position, villain.position).normalize();
+            villain.position.x += vDir.x * villainSpeed;
+            villain.position.z += vDir.z * villainSpeed;
+        }
+
+        if(d < 0.8) { isGameOver = true; document.getElementById('jumpscare').style.display='flex'; }
+        if(!hasKey && camera.position.distanceTo(key.position) < 1) { 
+            hasKey = true; key.visible = false; 
+            document.getElementById('inventory').innerText = "KEYS: 1/1";
+            document.getElementById('status').innerText = "GO TO EXIT";
+        }
+        if(hasKey && camera.position.distanceTo(door.position) < 1.5) { alert("YOU ESCAPED!"); location.reload(); }
+
+        drawMinimap();
+        renderer.render(scene, camera);
+    }
+
+    function drawMinimap() {
+        const ctx = document.getElementById('minimap').getContext('2d');
+        ctx.clearRect(0,0,120,120);
+        const s = 120 / mazeSize;
+        // Player
+        ctx.fillStyle = "#0f0";
+        ctx.fillRect(((camera.position.x+(mazeSize*wallSize)/2)/wallSize)*s, ((camera.position.z+(mazeSize*wallSize)/2)/wallSize)*s, 4, 4);
+        // Key
+        if(!hasKey) { ctx.fillStyle = "yellow"; ctx.fillRect(((key.position.x+(mazeSize*wallSize)/2)/wallSize)*s, ((key.position.z+(mazeSize*wallSize)/2)/wallSize)*s, 4, 4); }
+        // Exit
+        ctx.fillStyle = "#420";
+        ctx.fillRect(((door.position.x+(mazeSize*wallSize)/2)/wallSize)*s, ((door.position.z+(mazeSize*wallSize)/2)/wallSize)*s, 6, 6);
+    }
+</script>
+</body>
+</html>
