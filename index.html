@@ -3,144 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SHADOW ESCAPE: TACTICAL</title>
+    <title>SHADOW MAZE: BOMBER-VIEW</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; background: #111; touch-action: none; }
-        #ui { position: absolute; top: 15px; left: 15px; color: white; pointer-events: none; z-index: 5; }
-        .controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; gap: 10px; z-index: 20; }
-        .grid-ctrl { display: grid; grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(2, 60px); gap: 10px; }
-        .btn { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border: 2px solid #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
-        .btn:active { background: rgba(255,255,255,0.5); }
-        #static-overlay { position: fixed; top:0; left:0; width:100vw; height:100vh; background: url('https://media.giphy.com/media/oEI9uWUicGLeE/giphy.gif'); opacity: 0; pointer-events: none; z-index: 10; }
-        #jumpscare { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; display: none; z-index: 100; flex-direction: column; align-items: center; justify-content: center; color: red; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; touch-action: none; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #0f0; pointer-events: none; z-index: 10; font-weight: bold; }
+        
+        /* Mobile D-Pad Controls */
+        .controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 20; }
+        .dpad { display: grid; grid-template-columns: repeat(3, 65px); grid-template-rows: repeat(2, 65px); gap: 5px; }
+        .btn { width: 65px; height: 65px; background: rgba(255,255,255,0.1); border: 2px solid #555; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; user-select: none; }
+        .btn:active { background: rgba(255,255,255,0.3); border-color: #fff; }
+        #fire-btn { width: 80px; height: 135px; background: rgba(255, 0, 0, 0.2); border-color: #f00; color: #f00; }
+
+        /* Overlays */
+        #static { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: url('https://media.giphy.com/media/oEI9uWUicGLeE/giphy.gif'); opacity: 0; pointer-events: none; z-index: 5; }
+        #game-over { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: red; }
     </style>
 </head>
 <body>
 
-<div id="static-overlay"></div>
 <div id="ui">
-    <div id="status">FIND THE KEY</div>
-    <div id="inventory">KEYS: 0/1</div>
+    <div>OBJ: FIND KEY & EXIT</div>
+    <div id="inv">KEYS: 0/1</div>
 </div>
+
+<div id="static"></div>
 
 <div class="controls">
-    <div class="grid-ctrl">
-        <div style="grid-column: 2" class="btn" id="up">↑</div>
-        <div class="btn" id="left" style="grid-row: 2">←</div>
-        <div class="btn" id="down" style="grid-row: 2">↓</div>
-        <div class="btn" id="right" style="grid-row: 2">→</div>
+    <div class="dpad">
+        <div class="btn" id="up" style="grid-column: 2;">↑</div>
+        <div class="btn" id="left" style="grid-row: 2;">←</div>
+        <div class="btn" id="down" style="grid-row: 2;">↓</div>
+        <div class="btn" id="right" style="grid-row: 2;">→</div>
     </div>
-    <div class="btn" id="fire" style="background: rgba(0,255,255,0.3); width: 80px; height: 130px;">FLASH</div>
+    <div class="btn" id="fire-btn">FLASH</div>
 </div>
 
-<div id="jumpscare"><h1>CAUGHT</h1><button onclick="location.reload()">RETRY</button></div>
+<div id="game-over">
+    <h1 id="msg">YOU WERE CAUGHT</h1>
+    <button onclick="location.reload()" style="padding: 15px 30px; background: red; color: white; border: none; font-weight: bold;">REPLAY</button>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-    let scene, camera, renderer, player, villain, key, door;
-    let walls = [], hasKey = false, isGameOver = false;
-    let move = { up: false, down: false, left: false, right: false };
-    const mazeSize = 11, wallSize = 2;
+    let scene, camera, renderer, player, villain, key, exit;
+    let walls = [];
+    let moves = { up: false, down: false, left: false, right: false };
+    let hasKey = false, isDead = false;
+    const speed = 0.12;
 
     init();
     animate();
 
     function init() {
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a1a1a);
+        scene.background = new THREE.Color(0x050505);
 
-        // Top-down Camera
-        camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 15, 8); // High up looking down
+        // Top-down Orthographic-style Perspective
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 18, 5); 
         camera.lookAt(0, 0, 0);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0x404040, 2)); // Brighter world
+        // Lights
+        const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambient);
+        const pLight = new THREE.PointLight(0xffffff, 1, 15);
+        scene.add(pLight);
 
-        // Player Model (Blue Sphere)
-        player = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshStandardMaterial({color: 0x0088ff}));
-        player.position.set(-8, 0.5, -8);
+        // Player (Blue Cube)
+        player = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshStandardMaterial({color: 0x00aaff}));
+        player.position.set(-7, 0.4, -7);
         scene.add(player);
 
-        // Maze generation logic (Simplified for clarity)
-        const wallGeo = new THREE.BoxGeometry(wallSize, 2, wallSize);
-        const wallMat = new THREE.MeshStandardMaterial({color: 0x444444});
-        for(let i=0; i<40; i++) { // Random scattered blocks
-            let w = new THREE.Mesh(wallGeo, wallMat);
-            w.position.set(Math.floor(Math.random()*10 - 5)*2, 1, Math.floor(Math.random()*10 - 5)*2);
-            if(w.position.distanceTo(player.position) > 3) {
-                scene.add(w);
-                walls.push(w);
+        // Villain (Tall Black Cube)
+        villain = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.8, 0.7), new THREE.MeshBasicMaterial({color: 0x000000}));
+        villain.position.set(7, 0.9, 7);
+        scene.add(villain);
+
+        // Generate Grid Maze
+        const wallGeo = new THREE.BoxGeometry(1.8, 2, 1.8);
+        const wallMat = new THREE.MeshStandardMaterial({color: 0x222222});
+
+        for(let x = -5; x <= 5; x++) {
+            for(let z = -5; z <= 5; z++) {
+                if(Math.random() > 0.7 && Math.abs(x) > 1 && Math.abs(z) > 1) {
+                    const wall = new THREE.Mesh(wallGeo, wallMat);
+                    wall.position.set(x * 2, 1, z * 2);
+                    scene.add(wall);
+                    walls.push(wall);
+                }
             }
         }
 
-        // Key and Door
-        key = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), new THREE.MeshBasicMaterial({color: 0xffff00}));
+        // Key
+        key = new THREE.Mesh(new THREE.SphereGeometry(0.3), new THREE.MeshBasicMaterial({color: 0xffff00}));
         key.position.set(8, 0.5, 8);
         scene.add(key);
 
-        door = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.2, 1.5), new THREE.MeshBasicMaterial({color: 0x00ff00, transparent: true, opacity: 0.5}));
-        door.position.set(8, 0.1, -8);
-        scene.add(door);
+        // Exit
+        exit = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({color: 0x00ff00, side: THREE.DoubleSide}));
+        exit.rotation.x = Math.PI / 2;
+        exit.position.set(-8, 0.01, -8);
+        scene.add(exit);
 
-        // Villain
-        villain = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1), new THREE.MeshBasicMaterial({color: 0x000000}));
-        villain.position.set(0, 1, 0);
-        scene.add(villain);
-
-        setupControls();
+        setupInputs();
     }
 
-    function setupControls() {
-        const set = (id, dir, val) => {
-            document.getElementById(id).ontouchstart = (e) => { e.preventDefault(); move[dir] = val; };
-            document.getElementById(id).ontouchend = (e) => { e.preventDefault(); move[dir] = !val; };
+    function setupInputs() {
+        const bind = (id, dir) => {
+            const el = document.getElementById(id);
+            el.ontouchstart = (e) => { e.preventDefault(); moves[dir] = true; };
+            el.ontouchend = (e) => { e.preventDefault(); moves[dir] = false; };
         };
-        set('up', 'up', true); set('down', 'down', true);
-        set('left', 'left', true); set('right', 'right', true);
-        document.getElementById('fire').ontouchstart = () => {
-            if (player.position.distanceTo(villain.position) < 5) {
-                villain.position.set((Math.random()-0.5)*15, 1, (Math.random()-0.5)*15);
+        bind('up', 'up'); bind('down', 'down'); bind('left', 'left'); bind('right', 'right');
+        
+        document.getElementById('fire-btn').ontouchstart = (e) => {
+            e.preventDefault();
+            if(player.position.distanceTo(villain.position) < 5) {
+                villain.position.set(0, 0.9, 0); // Reset villain to center
             }
         };
     }
 
     function animate() {
-        if(isGameOver) return;
+        if(isDead) return;
         requestAnimationFrame(animate);
 
-        let nextPos = player.position.clone();
-        if(move.up) nextPos.z -= 0.15;
-        if(move.down) nextPos.z += 0.15;
-        if(move.left) nextPos.x -= 0.15;
-        if(move.right) nextPos.x += 0.15;
+        // Movement with Collision
+        let next = player.position.clone();
+        if(moves.up) next.z -= speed;
+        if(moves.down) next.z += speed;
+        if(moves.left) next.x -= speed;
+        if(moves.right) next.x += speed;
 
-        // Collision
-        let hit = false;
-        walls.forEach(w => { if(nextPos.distanceTo(w.position) < 1.3) hit = true; });
-        if(!hit) player.position.copy(nextPos);
+        let canMove = true;
+        walls.forEach(w => { if(next.distanceTo(w.position) < 1.4) canMove = false; });
+        if(canMove) player.position.copy(next);
 
-        // Camera follow
-        camera.position.x = player.position.x;
-        camera.position.z = player.position.z + 8;
+        // Camera follow (Smoothed)
+        camera.position.x += (player.position.x - camera.position.x) * 0.1;
+        camera.position.z += (player.position.z + 5 - camera.position.z) * 0.1;
 
-        // Villain AI
+        // Villain AI (Pathfinding toward player)
         const vDir = new THREE.Vector3().subVectors(player.position, villain.position).normalize();
-        villain.position.addScaledVector(vDir, 0.05);
+        villain.position.addScaledVector(vDir, 0.04);
 
-        // Logic
-        const dist = player.position.distanceTo(villain.position);
-        document.getElementById('static-overlay').style.opacity = Math.max(0, 1 - (dist/8));
+        // Distance FX (Static)
+        const d = player.position.distanceTo(villain.position);
+        document.getElementById('static').style.opacity = Math.max(0, 1 - (d / 7));
+
+        // Game Logic
+        if(d < 0.8) { isDead = true; document.getElementById('game-over').style.display = 'flex'; }
         
-        if(dist < 0.8) { isGameOver = true; document.getElementById('jumpscare').style.display = 'flex'; }
-        if(!hasKey && player.position.distanceTo(key.position) < 1) { 
-            hasKey = true; key.visible = false; 
-            document.getElementById('inventory').innerText = "KEYS: 1/1";
+        if(!hasKey && player.position.distanceTo(key.position) < 1) {
+            hasKey = true; key.visible = false;
+            document.getElementById('inv').innerText = "KEYS: 1/1";
+            document.getElementById('inv').style.color = "yellow";
         }
-        if(hasKey && player.position.distanceTo(door.position) < 1) { alert("WIN!"); location.reload(); }
+
+        if(hasKey && player.position.distanceTo(exit.position) < 1.2) {
+            document.getElementById('msg').innerText = "YOU ESCAPED!";
+            document.getElementById('msg').style.color = "#0f0";
+            isDead = true;
+            document.getElementById('game-over').style.display = 'flex';
+        }
 
         renderer.render(scene, camera);
     }
