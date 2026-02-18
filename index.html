@@ -3,75 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SlenderHunt: Pro Fit</title>
+    <title>SlenderHunt: Shop Edition</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            background: #000; color: #eee; font-family: sans-serif; 
-            overflow: hidden; display: flex; flex-direction: column; 
-            height: 100vh; width: 100vw; 
-        }
-        
-        /* Compact Stats Bar */
-        #ui-bar { 
-            height: 30px; width: 100%; display: flex; justify-content: space-around; 
-            align-items: center; background: #111; font-size: 11px; color: #f1c40f;
-            flex-shrink: 0;
-        }
-
-        /* Flexible Game Area - Shrinks to make room for buttons */
-        #game-area {
-            flex: 1; display: flex; align-items: center; justify-content: center;
-            padding: 5px; min-height: 0; background: #000;
-        }
-
-        canvas { 
-            background: #2d5a27; display: block; border: 2px solid #444; 
-            max-height: 100%; max-width: 100%; object-fit: contain;
-            image-rendering: pixelated;
-        }
-
-        /* High-Position Control Panel */
-        #control-panel {
-            padding: 10px 0 20px 0;
-            background: #000;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex-shrink: 0;
-        }
-
-        .dpad { 
-            display: grid; 
-            grid-template-columns: repeat(3, 70px); 
-            grid-template-rows: repeat(3, 60px);
-            grid-gap: 10px; 
-        }
-
-        .btn { 
-            background: #34495e; border-radius: 12px; display: flex; 
-            align-items: center; justify-content: center; user-select: none; 
-            border-bottom: 5px solid #1a252f; cursor: pointer; 
-            font-weight: bold; color: white; font-size: 14px;
-        }
+        body { background: #000; color: #eee; font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+        #ui-bar { height: 35px; width: 100%; display: flex; justify-content: space-around; align-items: center; background: #111; font-size: 11px; color: #f1c40f; flex-shrink: 0; border-bottom: 1px solid #333; }
+        #game-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; min-height: 0; background: #000; }
+        canvas { background: #2d5a27; display: block; border: 3px solid #444; max-height: 100%; max-width: 100%; object-fit: contain; image-rendering: pixelated; }
+        #control-panel { padding: 10px 0 40px 0; background: #000; width: 100%; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; border-top: 1px solid #222; }
+        .dpad { display: grid; grid-template-columns: repeat(3, 75px); grid-template-rows: repeat(3, 65px); grid-gap: 12px; }
+        .btn { background: #34495e; border-radius: 15px; display: flex; align-items: center; justify-content: center; user-select: none; border-bottom: 5px solid #1a252f; cursor: pointer; font-weight: bold; color: white; font-size: 15px; }
         .btn:active { border-bottom: 0; transform: translateY(4px); background: #2c3e50; }
-        
         #bomb-btn { background: #e74c3c; border-bottom-color: #c0392b; }
-
         .overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
-        .card { background: #1a1a1a; padding: 15px; margin: 5px; border-radius: 10px; width: 260px; border: 1px solid #444; cursor: pointer; }
+        .card { background: #1a1a1a; padding: 15px; margin: 5px; border-radius: 10px; width: 280px; border: 1px solid #444; cursor: pointer; }
         .hidden { display: none !important; }
+        .shop-item { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #333; border-radius: 5px; background: #111; cursor: pointer; }
+        .shop-item:hover { border-color: #f1c40f; }
     </style>
 </head>
 <body>
 
 <div id="intro-screen" class="overlay">
-    <h1 style="color:#e74c3c; margin-bottom:10px;">SLENDERHUNT</h1>
+    <h1 style="color:#e74c3c; margin-bottom:15px; font-size: 32px;">SLENDERHUNT</h1>
     <div class="card" onclick="setupGame('Classic', 5, 2, true, false, false, '#3498db')"><b>SOLDIER</b><p>Kick | HP: 5</p></div>
     <div class="card" onclick="setupGame('Ninja', 3, 3, false, true, true, '#2ecc71')"><b>NINJA</b><p>Phase | HP: 3</p></div>
     <div class="card" onclick="setupGame('Tank', 10, 5, false, false, true, '#e67e22')"><b>HEAVY</b><p>Range | HP: 10</p></div>
+</div>
+
+<div id="shop-screen" class="overlay hidden">
+    <h2 style="color:#f1c40f; margin-bottom:10px;">THE MERCHANT</h2>
+    <p style="margin-bottom: 20px; color: #aaa;">Gold: $<span id="shop-gold">0</span></p>
+    <div class="shop-item" onclick="buy('hp')"><span>+1 Life</span><span>$100</span></div>
+    <div class="shop-item" onclick="buy('range')"><span>+1 Range</span><span>$75</span></div>
+    <div class="shop-item" onclick="buy('remote')"><span>Remote Trigger</span><span>$150</span></div>
+    <div class="card" onclick="nextStage()" style="background:#27ae60; color:white; margin-top:20px;"><b>NEXT LEVEL</b></div>
 </div>
 
 <div id="ui-bar">
@@ -80,9 +46,7 @@
     <div>GOLD: $<span id="gold-txt">0</span></div>
 </div>
 
-<div id="game-area">
-    <canvas id="gameCanvas"></canvas>
-</div>
+<div id="game-area"><canvas id="gameCanvas"></canvas></div>
 
 <div id="control-panel">
     <div class="dpad">
@@ -100,7 +64,7 @@
 
     let grid = [], bombs = [], enemies = [], explosions = [], gold = 0;
     let player = { x: 1, y: 1, hp: 0, range: 2, invuln: 0, type: '', canKick: false, canPhase: false, remote: false, color: '#fff' };
-    let stage = 1, active = false;
+    let stage = 1, active = false, frame = 0;
 
     function setupGame(type, hp, range, kick, phase, remote, color) {
         Object.assign(player, { type, hp, range, canKick: kick, canPhase: phase, remote: remote, color, x:1, y:1 });
@@ -130,6 +94,47 @@
         }
     }
 
+    function buy(item) {
+        if (item === 'hp' && gold >= 100) { gold -= 100; player.hp++; }
+        if (item === 'range' && gold >= 75) { gold -= 75; player.range++; }
+        if (item === 'remote' && gold >= 150) { gold -= 150; player.remote = true; }
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('hp-txt').innerText = player.hp;
+        document.getElementById('gold-txt').innerText = gold;
+        document.getElementById('shop-gold').innerText = gold;
+        document.getElementById('stage-txt').innerText = stage;
+    }
+
+    function nextStage() {
+        stage++;
+        document.getElementById('shop-screen').classList.add('hidden');
+        buildLevel();
+        active = true;
+    }
+
+    function drawHuman(x, y, color, frame, invuln, isEnemy, isBoss, hp) {
+        if (invuln % 6 < 3 && invuln > 0) return;
+        const cx = x * TILE + TILE/2, cy = y * TILE + TILE/2;
+        const walk = Math.sin(frame * 0.2) * 3;
+        const sm = isBoss ? 1.4 : 1;
+        ctx.fillStyle = "#1a1a1a";
+        ctx.fillRect(cx - (6*sm), cy + (8*sm) + walk, 5*sm, 6*sm);
+        ctx.fillRect(cx + (1*sm), cy + (8*sm) - walk, 5*sm, 6*sm);
+        ctx.fillStyle = isEnemy ? (isBoss ? "#000" : "#333") : color;
+        ctx.fillRect(cx - (8*sm), cy - (4*sm), 16*sm, 14*sm);
+        ctx.fillStyle = "#FFDBAC";
+        ctx.fillRect(cx - (6*sm), cy - (14*sm), 12*sm, 11*sm);
+        ctx.fillStyle = isEnemy ? "#c0392b" : "#1a1a1a";
+        ctx.fillRect(cx - (7*sm), cy - (15*sm), 14*sm, 6*sm);
+        if(isBoss) {
+            ctx.fillStyle = "#333"; ctx.fillRect(x*TILE, y*TILE-10, TILE, 4);
+            ctx.fillStyle = "#f00"; ctx.fillRect(x*TILE, y*TILE-10, (hp/15)*TILE, 4);
+        }
+    }
+
     function handleMove(dx, dy) {
         if(!active) return;
         let nx = player.x + dx, ny = player.y + dy;
@@ -147,7 +152,11 @@
         if(!grid[ny] || grid[ny][nx] === 1 || bAt) return;
         if((grid[ny][nx] === 2 || grid[ny][nx] === 4) && !player.canPhase) return;
         player.x = nx; player.y = ny;
-        if(grid[ny][nx] === 3 && enemies.length === 0) { stage++; buildLevel(); }
+        if(grid[ny][nx] === 3 && enemies.length === 0) {
+            active = false;
+            document.getElementById('shop-screen').classList.remove('hidden');
+            updateUI();
+        }
     }
 
     function handleBombAction() {
@@ -177,6 +186,7 @@
                 if(player.x === ex && player.y === ey) { if(player.invuln === 0) { player.hp--; player.invuln = 60; } }
             }
         });
+        updateUI();
     }
 
     function loop() {
@@ -184,7 +194,10 @@
         if(active) {
             for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) {
                 let x = c*TILE, y = r*TILE;
-                if(grid[r][c] === 1) { ctx.fillStyle='#333'; ctx.fillRect(x,y,TILE,TILE); }
+                if(grid[r][c] === 1) { 
+                    ctx.fillStyle='#333'; ctx.fillRect(x,y,TILE,TILE);
+                    ctx.strokeStyle="#444"; ctx.strokeRect(x+2,y+2,TILE-4,TILE-4);
+                }
                 else if(grid[r][c] === 2 || grid[r][c] === 4) { 
                     ctx.fillStyle='#8a3a24'; ctx.fillRect(x+1, y+1, TILE-2, TILE-2);
                     ctx.strokeStyle="#5a2a1a"; ctx.strokeRect(x+3,y+3,TILE-6,TILE-6);
@@ -199,8 +212,7 @@
             ctx.fillStyle = 'rgba(255,255,255,0.7)'; explosions.forEach(ex => ctx.fillRect(ex.x*TILE, ex.y*TILE, TILE, TILE));
             explosions = explosions.filter(ex => { ex.life--; return ex.life > 0; });
             enemies.forEach(e => {
-                ctx.fillStyle = e.isBoss ? "#000" : "#e74c3c";
-                ctx.fillRect(e.x*TILE+8, e.y*TILE+8, 24, 24);
+                drawHuman(e.x, e.y, "#e74c3c", frame, 0, true, e.isBoss, e.hp);
                 e.t++; if(e.t > e.speed) {
                     let nx = e.x + e.dx, ny = e.y + e.dy;
                     if(grid[ny] && grid[ny][nx] === 0 && !bombs.find(b => b.x === nx && b.y === ny)) { e.x = nx; e.y = ny; }
@@ -209,14 +221,12 @@
                 }
                 if(e.x === player.x && e.y === player.y) { if(player.invuln === 0) { player.hp--; player.invuln = 60; } }
             });
-            ctx.fillStyle = player.color; ctx.fillRect(player.x*TILE+8, player.y*TILE+8, 24, 24);
+            drawHuman(player.x, player.y, player.color, frame, player.invuln, false, false);
             if(player.invuln > 0) player.invuln--;
             if(player.hp <= 0) location.reload();
-            document.getElementById('hp-txt').innerText = player.hp;
-            document.getElementById('stage-txt').innerText = stage;
-            document.getElementById('gold-txt').innerText = gold;
+            updateUI();
         }
-        requestAnimationFrame(loop);
+        frame++; requestAnimationFrame(loop);
     }
     loop();
 </script>
