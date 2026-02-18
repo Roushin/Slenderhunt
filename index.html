@@ -3,97 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SlenderHunt: Singularity Protocol</title>
+    <title>SlenderHunt: Classified</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body { background: #050505; color: #eee; font-family: 'Courier New', monospace; overflow: hidden; display: flex; flex-direction: column; height: 100vh; width: 100vw; }
         
-        #ui-bar { height: 40px; width: 100%; display: flex; justify-content: space-around; align-items: center; background: #111; font-size: 11px; color: #f1c40f; flex-shrink: 0; border-bottom: 2px solid #0f0; box-shadow: 0 0 15px rgba(0,255,0,0.2); z-index: 10; }
-        #ui-bar b { color: #fff; }
+        #ui-bar { height: 40px; width: 100%; display: flex; justify-content: space-around; align-items: center; background: #000; font-size: 11px; color: #0f0; flex-shrink: 0; border-bottom: 2px solid #0f0; z-index: 10; }
+        #ui-bar b { color: #fff; text-shadow: 0 0 5px #fff; }
 
         #game-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 5px; min-height: 0; }
-        canvas { background: #1a2e18; display: block; border: 4px solid #333; max-height: 42vh; max-width: 95vw; object-fit: contain; image-rendering: pixelated; }
+        canvas { background: #111; display: block; border: 3px solid #0f0; max-height: 42vh; max-width: 95vw; object-fit: contain; image-rendering: pixelated; box-shadow: 0 0 20px rgba(0,255,0,0.2); }
         
         #control-panel { padding: 5px 0 45px 0; background: #000; width: 100%; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
         .dpad { display: grid; grid-template-columns: repeat(3, 75px); grid-template-rows: repeat(3, 62px); grid-gap: 12px; }
-        .btn { background: linear-gradient(145deg, #2c3e50, #1a252f); border-radius: 12px; display: flex; align-items: center; justify-content: center; user-select: none; border-bottom: 5px solid #000; cursor: pointer; font-weight: bold; color: white; font-size: 13px; text-transform: uppercase; }
-        .btn:active { border-bottom: 0; transform: translateY(4px); background: #1a252f; }
-        #bomb-btn { background: linear-gradient(145deg, #e74c3c, #c0392b); border-bottom-color: #600; }
-        #dash-btn { background: linear-gradient(145deg, #9b59b6, #8e44ad); border-bottom-color: #301934; }
+        .btn { background: #111; border-radius: 12px; display: flex; align-items: center; justify-content: center; user-select: none; border: 1px solid #0f0; border-bottom: 5px solid #050; cursor: pointer; font-weight: bold; color: #0f0; font-size: 13px; }
+        .btn:active { border-bottom: 0; transform: translateY(4px); background: #020; }
+        #bomb-btn { color: #f00; border-color: #f00; border-bottom-color: #500; }
 
-        .overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; padding: 20px; text-align: center; overflow-y: auto; }
-        .dossier { background: #111; padding: 15px; margin: 10px 0; border-radius: 10px; width: 100%; max-width: 360px; border: 1px solid #0f0; cursor: pointer; display: flex; flex-direction: column; }
-        .dossier-header { display: flex; align-items: center; margin-bottom: 10px; }
-        .portrait-hd { width: 60px; height: 60px; border: 2px solid #0f0; background: #222; margin-right: 15px; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 0 10px rgba(0,255,0,0.3); }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 10px; color: #0f0; margin-top: 5px; }
+        .overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; padding: 15px; text-align: center; overflow-y: auto; }
+        
+        /* Dossier Styling */
+        .dossier { background: #0a0a0a; padding: 15px; margin: 10px 0; border-radius: 5px; width: 100%; max-width: 380px; border: 1px solid #0f0; cursor: pointer; text-align: left; position: relative; }
+        .dossier:hover { background: #0f02; }
+        .portrait-frame { width: 70px; height: 70px; border: 2px solid #0f0; background: #111; margin-right: 15px; display: flex; align-items: center; justify-content: center; font-size: 35px; float: left; }
+        .dossier h3 { color: #0f0; font-size: 16px; margin-bottom: 2px; text-transform: uppercase; }
+        .dossier .tag { font-size: 9px; background: #0f0; color: #000; padding: 1px 4px; font-weight: bold; margin-bottom: 5px; display: inline-block; }
+        .dossier p { font-size: 10px; color: #8a8; line-height: 1.3; margin-top: 5px; clear: both; }
+        
+        .attr-bar { width: 100%; height: 4px; background: #222; margin: 4px 0; position: relative; }
+        .attr-fill { height: 100%; background: #0f0; box-shadow: 0 0 5px #0f0; }
+        .attr-label { font-size: 8px; color: #0f0; text-transform: uppercase; }
+
         .hidden { display: none !important; }
-        .typewriter { font-size: 12px; color: #0f0; margin-bottom: 15px; text-align: left; border-left: 2px solid #0f0; padding-left: 10px; line-height: 1.4; }
+        .crt-flicker { animation: flicker 0.1s infinite; }
+        @keyframes flicker { 0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.9; } }
     </style>
 </head>
 <body>
 
 <div id="ui-bar">
     <div>DEPTH: <b id="stage-txt">1</b>/10</div>
-    <div>BIO-SIGNS: <b id="hp-txt">0</b></div>
-    <div>CREDITS: $<b id="gold-txt">0</b></div>
+    <div>BIO: <b id="hp-txt">0</b></div>
+    <div>CRED: $<b id="gold-txt">0</b></div>
 </div>
 
 <div id="intro-screen" class="overlay">
-    <h1 style="color:#0f0; text-shadow: 0 0 10px #0f0;">Singularity Protocol</h1>
-    <div class="typewriter">
-        LOG_DATE: 2026.02.19<br>
-        SUBJECT: The Static Plague.<br>
-        Reality has been overwritten by a parasitic geometry. Suburbs are now lethal grids. One operative remains. Reach Depth 10. Purge the Core.
+    <h1 class="crt-flicker" style="color:#0f0; margin-bottom:10px;">SLENDERHUNT 2026</h1>
+    <div style="font-size: 10px; color: #0f0; text-align: left; max-width: 380px; border: 1px solid #0f0; padding: 10px; margin-bottom: 15px;">
+        >> DATA_RESTORE: COMPLETE<br>
+        >> LORE: The 'Static Plague' has localized. Suburban structures have phased into a lethal non-euclidean grid. Biological entities are mutating. Deploy one Operative to Depth 10. Purge the Singularity Core.
     </div>
 
     <div class="dossier" onclick="setupGame('Vance', 5, 2, true, false, false, '#3498db')">
-        <div class="dossier-header">
-            <div class="portrait-hd">🎖️</div>
-            <div style="text-align:left;"><b>NAME: LT. VANCE</b><small style="color:#888;"> [VETERAN CLEANER]</small></div>
-        </div>
-        <p style="font-size:10px; color:#ccc; text-align:left;">Background: Last survivor of the 4th Infantry. Equipped with MK-II Hydraulic Boots for kicking heavy munitions.</p>
-        <div class="stats-grid"><div>HEALTH: ■■■■■</div><div>KICK: ENABLED</div><div>RANGE: 2.0m</div><div>PHASE: DISABLED</div></div>
+        <div class="portrait-frame">🎖️</div>
+        <h3>LT. VANCE</h3>
+        <span class="tag">CLASS: VETERAN CLEANER</span>
+        <div class="attr-label">Durability</div><div class="attr-bar"><div class="attr-fill" style="width:70%"></div></div>
+        <div class="attr-label">Utility</div><div class="attr-bar"><div class="attr-fill" style="width:90%"></div></div>
+        <p>RECORDS: Ex-4th Infantry demolitionist. Only human to survive the Depth 1 collapse. Equipped with MK-II Hydraulic boots that exert 4000psi, capable of kicking active high-explosives.</p>
     </div>
 
     <div class="dossier" onclick="setupGame('Kaito', 3, 3, false, true, true, '#2ecc71')">
-        <div class="dossier-header">
-            <div class="portrait-hd">🎭</div>
-            <div style="text-align:left;"><b>NAME: KAITO</b><small style="color:#888;"> [VOID RUNNER]</small></div>
-        </div>
-        <p style="font-size:10px; color:#ccc; text-align:left;">Background: A data-thief who learned to vibrate his molecules to pass through warped matter. Uses Remote Triggers.</p>
-        <div class="stats-grid"><div>HEALTH: ■■■</div><div>KICK: DISABLED</div><div>RANGE: 3.0m</div><div>PHASE: ENABLED</div></div>
+        <div class="portrait-frame">🎭</div>
+        <h3>KAITO</h3>
+        <span class="tag">CLASS: VOID RUNNER</span>
+        <div class="attr-label">Mobility</div><div class="attr-bar"><div class="attr-fill" style="width:100%"></div></div>
+        <div class="attr-label">Stealth</div><div class="attr-bar"><div class="attr-fill" style="width:80%"></div></div>
+        <p>RECORDS: High-profile corporate infiltrator. Utilizes a 'Slip-Drive' to vibrate cellular structure, allowing him to phase through non-solid warped matter (Bricks). Uses Remote-link detonators.</p>
     </div>
 
     <div class="dossier" onclick="setupGame('Grom', 10, 5, false, false, true, '#e67e22')">
-        <div class="dossier-header">
-            <div class="portrait-hd">🦾</div>
-            <div style="text-align:left;"><b>NAME: GROM</b><small style="color:#888;"> [BIO-AUGMENT]</small></div>
-        </div>
-        <p style="font-size:10px; color:#ccc; text-align:left;">Background: 80% cybernetic. Designed for scorched-earth tactics. Massive blast dampeners integrated into armor.</p>
-        <div class="stats-grid"><div>HEALTH: ■■■■■+</div><div>KICK: DISABLED</div><div>RANGE: 5.0m</div><div>PHASE: DISABLED</div></div>
+        <div class="portrait-frame">🦾</div>
+        <h3>GROM</h3>
+        <span class="tag">CLASS: BIO-AUGMENT</span>
+        <div class="attr-label">Power</div><div class="attr-bar"><div class="attr-fill" style="width:100%"></div></div>
+        <div class="attr-label">Armor</div><div class="attr-bar"><div class="attr-fill" style="width:100%"></div></div>
+        <p>RECORDS: 85% mechanical conversion. Massive bio-link health pool. Designed for high-radius scorched-earth purging. Remote detonation enabled by default to prevent self-damage.</p>
     </div>
 </div>
 
-<div id="death-screen" class="overlay hidden" style="justify-content: center;">
-    <h1 style="color:#f00;">SIGNAL LOST</h1>
-    <p style="color:#f00; font-size:12px;">Bio-signs flatlined. Consciousness discarded.</p>
-    <div class="dossier" onclick="location.reload()" style="background:#400; color:#fff; border-color:#f00; justify-content:center; align-items:center;"><b>RE-LINK NEURAL INTERFACE</b></div>
-</div>
-
-<div id="shop-screen" class="overlay hidden" style="justify-content: center;">
+<div id="shop-screen" class="overlay hidden">
     <h2 style="color:#0f0;">SECTOR PURGED</h2>
-    <p id="lore-body" style="font-size:11px; color:#aaa; margin:10px 0;"></p>
-    <div class="dossier" onclick="buy('hp')"><b>REPAIR NANITES ($100)</b><small>+1 Vitality</small></div>
-    <div class="dossier" onclick="buy('range')"><b>BLAST OVERCLOCK ($75)</b><small>+1 Explosion Radius</small></div>
-    <div class="dossier" onclick="nextStage()" style="background:#040; border-color:#0f0; align-items:center;"><b>INITIATE DESCENT</b></div>
+    <p id="lore-body" style="font-size:11px; color:#0f0; margin:15px 0; border:1px solid #0f0; padding:10px;"></p>
+    <div class="dossier" onclick="buy('hp')"><b>REPAIR NANITES ($100)</b><p>Restore bio-signature integrity (+1 HP).</p></div>
+    <div class="dossier" onclick="buy('range')"><b>OVERCLOCK CORE ($75)</b><p>Expand explosion radius (+1 RNG).</p></div>
+    <div class="dossier" onclick="nextStage()" style="background:#0f0; color:#000; text-align:center;"><b>INITIATE NEXT DESCENT</b></div>
 </div>
 
 <div id="game-area"><canvas id="gameCanvas"></canvas></div>
 
 <div id="control-panel">
     <div class="dpad">
-        <div class="btn" id="dash-btn">DASH</div><div class="btn" id="ctrl-up">UP</div><div></div>
-        <div class="btn" id="ctrl-left">LEFT</div><div class="btn" id="bomb-btn">BOMB</div><div class="btn" id="ctrl-right">RIGHT</div>
+        <div class="btn" onclick="handleDash()">DASH</div><div class="btn" id="ctrl-up">UP</div><div></div>
+        <div class="btn" id="ctrl-left">LEFT</div><div class="btn" id="bomb-btn" onclick="handleBombAction()">BOMB</div><div class="btn" id="ctrl-right">RIGHT</div>
         <div></div><div class="btn" id="ctrl-down">DOWN</div><div></div>
     </div>
 </div>
@@ -108,7 +110,7 @@
     let player = { x: 1, y: 1, hp: 0, range: 2, invuln: 0, color: '#fff', lastMove: 0 };
     let stage = 1, active = false, frame = 0, audioCtx = null, shake = 0, moveDir = {dx:0, dy:0};
 
-    const LORE = ["","The static is screaming.","The grid is shifting.","Logic is failing.","BOSS DETECTED.","Entrance to the Void.","Flesh becomes data.","The walls have eyes.","Heartbeat flatlining.","THE SINGULARITY."];
+    const LORE = ["","STATIC INTENSIFIES.","THEY ARE IN THE WALLS.","REALITY FRAGMENTED.","GATEKEEPER DETECTED.","THE GREY NEST OPENED.","MUTATIONS DETECTED.","PHANTOM SIGNALS DETECTED.","SINGULARITY NEAR.","CORE REACHED."];
 
     function initAudio() { if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
     function sfx(freq, type, dur, vol=0.05) { if(!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime); gain.gain.setValueAtTime(vol, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + dur); }
@@ -129,7 +131,9 @@
         else {
             let bricks = [];
             for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) if(grid[r][c]===2) bricks.push({r,c});
-            if(bricks.length) grid[bricks[Math.floor(Math.random()*bricks.length)].r][bricks[Math.floor(Math.random()*bricks.length)].c] = 4;
+            // HIDE PORTAL
+            let door = bricks[Math.floor(Math.random()*bricks.length)];
+            grid[door.r][door.c] = 4;
             for(let i=0; i < stage + 1; i++) {
                 let rx, ry; do { rx = Math.floor(Math.random() * COLS); ry = Math.floor(Math.random() * ROWS); } while(grid[ry][rx] !== 0 || (rx < 4 && ry < 4));
                 enemies.push({ x: rx, y: ry, dx: 1, dy: 0, t: 0, speed: 40, hp: 1, trait: (stage > 4 && Math.random() > 0.5) ? 'sprinter' : 'grunt' });
@@ -141,14 +145,21 @@
         if(!active || (moveDir.dx === 0 && moveDir.dy === 0)) return;
         let now = Date.now();
         if(now - player.lastMove < 150) return;
+        
         let nx = player.x + moveDir.dx, ny = player.y + moveDir.dy;
         
-        if(grid[ny] && grid[ny][nx] === 3 && enemies.length === 0) {
-            player.x = nx; player.y = ny; active = false;
-            if(stage === 10) { alert("CORE PURGED."); location.reload(); return; }
-            document.getElementById('lore-body').innerText = LORE[stage];
-            document.getElementById('shop-screen').classList.remove('hidden');
-            return;
+        // EXIT TRIGGER
+        if(grid[ny] && grid[ny][nx] === 3) {
+            if(enemies.length === 0) {
+                active = false;
+                if(stage === 10) { alert("CORE PURGED. REALITY RESTORED."); location.reload(); }
+                else {
+                    document.getElementById('lore-body').innerText = LORE[stage];
+                    document.getElementById('shop-screen').classList.remove('hidden');
+                    document.getElementById('shop-gold').innerText = gold;
+                }
+                return;
+            }
         }
 
         let bAt = bombs.find(b => b.x === nx && b.y === ny);
@@ -162,11 +173,14 @@
             }, 80);
             player.lastMove = now; return;
         }
+
         if(!grid[ny] || grid[ny][nx] === 1 || bAt) return;
         if((grid[ny][nx] === 2 || grid[ny][nx] === 4) && !player.canPhase) return;
+
         player.x = nx; player.y = ny; player.lastMove = now;
     }
 
+    // CONTINUOUS MOTION BINDING
     const binds = {'ctrl-up': {dx:0, dy:-1}, 'ctrl-down': {dx:0, dy:1}, 'ctrl-left': {dx:-1, dy:0}, 'ctrl-right': {dx:1, dy:0}};
     Object.keys(binds).forEach(id => {
         const el = document.getElementById(id);
@@ -175,8 +189,6 @@
         el.addEventListener('touchstart', start); el.addEventListener('touchend', end);
         el.addEventListener('mousedown', start); el.addEventListener('mouseup', end);
     });
-    document.getElementById('bomb-btn').addEventListener('touchstart', (e) => { e.preventDefault(); handleBombAction(); });
-    document.getElementById('dash-btn').addEventListener('touchstart', (e) => { e.preventDefault(); handleDash(); });
 
     function handleDash() {
         if(!active || gold < 10 || (moveDir.dx === 0 && moveDir.dy === 0)) return;
@@ -185,9 +197,9 @@
     }
 
     function handleBombAction() {
-        if(!active || bombs.length >= 3) return;
+        if(!active) return;
         if(player.remote && bombs.length > 0) { shake = 12; while(bombs.length > 0) explode(bombs[0].x, bombs[0].y); bombs=[]; }
-        else if(!bombs.find(b => b.x === player.x && b.y === player.y)) { bombs.push({ x: player.x, y: player.y, timer: player.remote ? 9999 : 100 }); sfx(100, 'square', 0.1); }
+        else if(bombs.length < 3 && !bombs.find(b => b.x === player.x && b.y === player.y)) { bombs.push({ x: player.x, y: player.y, timer: player.remote ? 9999 : 100 }); sfx(100, 'square', 0.1); }
     }
 
     function explode(bx, by) {
@@ -199,57 +211,42 @@
                 explosions.push({ x: ex, y: ey, life: 15 });
                 if(grid[ey][ex] === 2 || grid[ey][ex] === 4) { gold += 15; grid[ey][ex] = (grid[ey][ex] === 4) ? 3 : 0; break; }
                 enemies.forEach((e, idx) => { if (e.x === ex && e.y === ey) { e.hp--; if (e.hp <= 0) { if (e.isBoss) grid[e.y][e.x] = 3; enemies.splice(idx, 1); gold += 50; } } });
-                if(player.x === ex && player.y === ey && player.invuln <= 0) { player.hp--; player.invuln = 60; sfx(40, 'sine', 0.8); }
+                if(player.x === ex && player.y === ey && player.invuln <= 0) { player.hp--; player.invuln = 60; sfx(40, 'sine', 0.8); if(player.hp <= 0) { active = false; location.reload(); } }
             }
         });
     }
 
-    function buy(item) { if (item === 'hp' && gold >= 100) { gold -= 100; player.hp++; sfx(800, 'sine', 0.2); } if (item === 'range' && gold >= 75) { gold -= 75; player.range++; sfx(800, 'sine', 0.2); } }
+    function buy(item) { if (item === 'hp' && gold >= 100) { gold -= 100; player.hp++; sfx(800, 'sine', 0.2); } if (item === 'range' && gold >= 75) { gold -= 75; player.range++; sfx(800, 'sine', 0.2); } document.getElementById('shop-gold').innerText = gold; }
     function nextStage() { stage++; document.getElementById('shop-screen').classList.add('hidden'); buildLevel(); active = true; }
 
-    function drawHDUnit(x, y, color, frame, invuln, isEnemy, trait) {
+    function drawUnit(x, y, color, frame, invuln, isEnemy, trait) {
         if (invuln % 6 < 3 && invuln > 0) return;
         const cx = x * TILE + 20, cy = y * TILE + 20, sm = trait==='boss' ? 1.5 : 1, walk = Math.sin(frame * 0.25) * 4;
-        
-        ctx.fillStyle = "#111"; // Legs
-        ctx.fillRect(cx-6*sm, cy+(6*sm)+walk, 5*sm, 8*sm); ctx.fillRect(cx+1*sm, cy+(6*sm)-walk, 5*sm, 8*sm);
-        
-        ctx.fillStyle = isEnemy ? (trait==='sprinter'?'#f44':'#444') : color; // Torso
-        ctx.fillRect(cx-9*sm, cy-5*sm, 18*sm, 14*sm);
-        
-        ctx.fillStyle = "#FFDBAC"; // Head
-        ctx.fillRect(cx-6*sm, cy-16*sm, 12*sm, 11*sm);
-        
-        ctx.fillStyle = isEnemy ? "#f00" : "#0ff"; // Visor
-        ctx.fillRect(cx-7*sm, cy-15*sm, 14*sm, 5*sm);
-        
-        ctx.fillStyle = "#000"; // Eyes
-        ctx.fillRect(cx-4*sm, cy-11*sm, 2*sm, 2*sm); ctx.fillRect(cx+2*sm, cy-11*sm, 2*sm, 2*sm);
+        ctx.fillStyle = "#111"; ctx.fillRect(cx-6*sm, cy+(6*sm)+walk, 5*sm, 8*sm); ctx.fillRect(cx+1*sm, cy+(6*sm)-walk, 5*sm, 8*sm);
+        ctx.fillStyle = isEnemy ? (trait==='sprinter'?'#f44':'#444') : color; ctx.fillRect(cx-9*sm, cy-5*sm, 18*sm, 14*sm);
+        ctx.fillStyle = "#FFDBAC"; ctx.fillRect(cx-6*sm, cy-16*sm, 12*sm, 11*sm);
+        ctx.fillStyle = isEnemy ? "#f00" : "#0ff"; ctx.fillRect(cx-7*sm, cy-15*sm, 14*sm, 5*sm);
     }
 
     function loop() {
         handleInput();
         if(shake > 0) { ctx.setTransform(1,0,0,1,(Math.random()-0.5)*shake,(Math.random()-0.5)*shake); shake *= 0.85; }
-        ctx.fillStyle = (stage > 5) ? '#0a0a0a' : '#1e381b'; ctx.fillRect(-TILE, -TILE, canvas.width+TILE*2, canvas.height+TILE*2);
-        
+        ctx.fillStyle = (stage > 5) ? '#050505' : '#1a2e18'; ctx.fillRect(-TILE, -TILE, canvas.width+TILE*2, canvas.height+TILE*2);
         if(active) {
             for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) {
-                if(grid[r][c] === 1) { ctx.fillStyle='#222'; ctx.fillRect(c*TILE, r*TILE, TILE, TILE); ctx.strokeStyle="#444"; ctx.strokeRect(c*TILE+2, r*TILE+2, TILE-4, TILE-4); }
-                else if(grid[r][c] === 2 || grid[r][c] === 4) { 
-                    ctx.fillStyle=(stage > 5) ? "#2c2c2c" : "#7a3420"; ctx.fillRect(c*TILE+1, r*TILE+1, TILE-2, TILE-2);
-                    ctx.strokeStyle="#111"; ctx.strokeRect(c*TILE+5, r*TILE+5, TILE-10, TILE-10); // Detail
-                }
+                if(grid[r][c] === 1) { ctx.fillStyle='#222'; ctx.fillRect(c*TILE, r*TILE, TILE, TILE); ctx.strokeStyle="#0f0"; ctx.strokeRect(c*TILE+2, r*TILE+2, TILE-4, TILE-4); }
+                else if(grid[r][c] === 2 || grid[r][c] === 4) { ctx.fillStyle=(stage > 5) ? "#222" : "#5a2a1a"; ctx.fillRect(c*TILE+1, r*TILE+1, TILE-2, TILE-2); ctx.strokeStyle="#111"; ctx.strokeRect(c*TILE+5, r*TILE+5, TILE-10, TILE-10); }
                 else if(grid[r][c] === 3) { ctx.fillStyle = "#000"; ctx.fillRect(c*TILE, r*TILE, TILE, TILE); ctx.strokeStyle = "#0f0"; ctx.strokeRect(c*TILE+5, r*TILE+5, TILE-10, TILE-10); }
             }
-            bombs.forEach((b, i) => { ctx.fillStyle = player.remote ? "#9b59b6" : "#111"; ctx.beginPath(); ctx.arc(b.x*TILE+20, b.y*TILE+20, 14, 0, 7); ctx.fill(); if(!player.remote) { b.timer--; if(b.timer <= 0) { explode(b.x, b.y); bombs.splice(i, 1); } } });
-            explosions.forEach(ex => { ctx.fillStyle = 'rgba(255,200,50,0.8)'; ctx.fillRect(ex.x*TILE+2, ex.y*TILE+2, TILE-4, TILE-4); ex.life--; });
+            bombs.forEach(b => { ctx.fillStyle = player.remote ? "#0ff" : "#f00"; ctx.beginPath(); ctx.arc(b.x*TILE+20, b.y*TILE+20, 14, 0, 7); ctx.fill(); if(!player.remote) { b.timer--; if(b.timer <= 0) { explode(b.x, b.y); bombs.splice(bombs.indexOf(b), 1); } } });
+            explosions.forEach(ex => { ctx.fillStyle = 'rgba(0,255,0,0.5)'; ctx.fillRect(ex.x*TILE, ex.y*TILE, TILE, TILE); ex.life--; });
             explosions = explosions.filter(ex => ex.life > 0);
-            enemies.forEach(e => { drawHDUnit(e.x, e.y, "#e74c3c", frame, 0, true, e.trait); e.t++; if(e.t > e.speed) { let nx = e.x + e.dx, ny = e.y + e.dy; if(grid[ny] && grid[ny][nx] === 0 && !bombs.find(b => b.x === nx && b.y === ny)) { e.x = nx; e.y = ny; } else { let d = [[0,1],[0,-1],[1,0],[-1,0]][Math.floor(Math.random()*4)]; e.dx = d[0]; e.dy = d[1]; } e.t = 0; } if(e.x === player.x && e.y === player.y && player.invuln <= 0) { player.hp--; player.invuln = 60; sfx(40, 'sine', 0.8); } });
-            drawHDUnit(player.x, player.y, player.color, frame, player.invuln, false, '');
-            if(player.invuln > 0) player.invuln--; if(player.hp <= 0) { active = false; document.getElementById('death-screen').classList.remove('hidden'); }
+            enemies.forEach(e => { drawUnit(e.x, e.y, "#f00", frame, 0, true, e.trait); e.t++; if(e.t > e.speed) { let nx = e.x + e.dx, ny = e.y + e.dy; if(grid[ny] && grid[ny][nx] === 0 && !bombs.find(b => b.x === nx && b.y === ny)) { e.x = nx; e.y = ny; } else { let d = [[0,1],[0,-1],[1,0],[-1,0]][Math.floor(Math.random()*4)]; e.dx = d[0]; e.dy = d[1]; } e.t = 0; } if(e.x === player.x && e.y === player.y && player.invuln <= 0) { player.hp--; player.invuln = 60; sfx(40, 'sine', 0.8); if(player.hp <= 0) { active = false; location.reload(); } } });
+            drawUnit(player.x, player.y, player.color, frame, player.invuln, false, '');
+            if(player.invuln > 0) player.invuln--;
         }
         ctx.setTransform(1,0,0,1,0,0);
-        document.getElementById('hp-txt').innerText = Math.max(0, player.hp); document.getElementById('gold-txt').innerText = gold; document.getElementById('stage-txt').innerText = stage;
+        document.getElementById('hp-txt').innerText = player.hp; document.getElementById('gold-txt').innerText = gold; document.getElementById('stage-txt').innerText = stage;
         frame++; requestAnimationFrame(loop);
     }
     loop();
