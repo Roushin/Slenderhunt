@@ -24,7 +24,7 @@
         .card b { font-size: 14px; color: #f1c40f; display: block; margin-bottom: 4px; }
         .hidden { display: none !important; }
         
-        .story-text { color: #f1c40f; font-style: italic; margin-bottom: 20px; line-height: 1.4; font-size: 14px; max-width: 300px; }
+        .story-text { color: #f1c40f; font-style: italic; margin-bottom: 20px; line-height: 1.4; font-size: 13px; max-width: 320px; }
         .shop-item { display: flex; justify-content: space-between; align-items: center; width: 280px; margin-bottom: 8px; padding: 12px; border: 1px solid #333; border-radius: 8px; background: #111; cursor: pointer; }
     </style>
 </head>
@@ -32,13 +32,19 @@
 
 <div id="intro-screen" class="overlay">
     <h1 style="color:#e74c3c; margin-bottom:10px;">SLENDERHUNT</h1>
-    <p class="story-text">Year 204X. The "Slender-Virus" has turned the suburbs into a shifting labyrinth. You are the last operative sent to detonate the core.</p>
+    <p class="story-text">THE SUBURBS HAVE FALLEN. A static-born virus known as 'The Slender' has warped reality into a 10-tier nightmare. You are the last surviving Cleaner. Detonate the core in Depth 10 to reset the world.</p>
     <div class="card-grid">
         <div class="card" onclick="setupGame('Soldier', 5, 2, true, false, false, '#3498db')"><b>SOLDIER</b>HP: 5 | RNG: 2</div>
         <div class="card" onclick="setupGame('Ninja', 3, 3, false, true, true, '#2ecc71')"><b>NINJA</b>HP: 3 | RNG: 3</div>
         <div class="card" onclick="setupGame('Tank', 10, 5, false, false, true, '#e67e22')"><b>HEAVY</b>HP: 10 | RNG: 5</div>
         <div class="card" onclick="setupGame('Ghost', 2, 4, false, true, false, '#9b59b6')"><b>PHANTOM</b>HP: 2 | RNG: 4</div>
     </div>
+</div>
+
+<div id="death-screen" class="overlay hidden">
+    <h1 style="color:#e74c3c; margin-bottom:20px;">OPERATIVE DOWN</h1>
+    <p class="story-text">Your bio-signs have flatlined. The Slender has claimed another soul.</p>
+    <div class="card" onclick="location.reload()" style="background:#e74c3c; color:white; width: 240px;"><b>RETRY MISSION</b></div>
 </div>
 
 <div id="shop-screen" class="overlay hidden">
@@ -51,7 +57,7 @@
 </div>
 
 <div id="ui-bar">
-    <div>DEPT: <span id="stage-txt">1</span>/10</div>
+    <div>DEPTH: <span id="stage-txt">1</span>/10</div>
     <div>HP: <span id="hp-txt">0</span></div>
     <div>GOLD: $<span id="gold-txt">0</span></div>
 </div>
@@ -77,16 +83,16 @@
     let stage = 1, active = false, frame = 0, audioCtx = null;
 
     const LORE = [
-        "", // Stage 1
-        "The static in your headset grows louder. They are watching from the shadows.",
-        "The suburban walls are changing. This isn't architecture; it's a trap.",
-        "You found a survivor's diary. 'Don't look at it,' it says. Too late.",
-        "BOSS INBOUND: The Stalker of the First Gate approaches.",
-        "Midpoint reached. The grass turns to grey ash. You are entering the Nest.",
-        "The Sprinters here are hungry. They smell the gunpowder on your boots.",
-        "The Phantoms phase through reality. Your bombs are the only thing that's real.",
-        "The air is thin. The Core is just a few sectors away.",
-        "FINAL BOSS: The Void Singularity. End the nightmare, Operative."
+        "", 
+        "Static leaks from the walls. Depth 2 is colder than the first.",
+        "They whisper in the wires. You are being hunted.",
+        "The suburban layout is decaying. Reality is losing its grip.",
+        "BOSS: The First Gatekeeper blocks the path to the Nest.",
+        "The Nest is reached. The sky is black, the air smells of ozone.",
+        "Mutants here move faster. Their eyes reflect the void.",
+        "Phantoms bleed through the bricks. Keep your finger on the trigger.",
+        "The Core's heartbeat pulses through your feet. Almost there.",
+        "FINAL DEPTH: The Singularity awaits. Burn it all down."
     ];
 
     function initAudio() { if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
@@ -124,8 +130,7 @@
             let bricks = [];
             for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) if(grid[r][c]===2) bricks.push({r,c});
             if(bricks.length) grid[bricks[0].r][bricks[0].c] = 4;
-            let count = stage + 1;
-            for(let i=0; i < count; i++) {
+            for(let i=0; i < stage + 1; i++) {
                 let rx, ry; do { rx = Math.floor(Math.random() * COLS); ry = Math.floor(Math.random() * ROWS); } while(grid[ry][rx] !== 0 || (rx < 4 && ry < 4));
                 let trait = (stage > 6 && Math.random() > 0.6) ? 'ghost' : ((stage > 3 && Math.random() > 0.7) ? 'sprinter' : 'grunt');
                 enemies.push({ x: rx, y: ry, dx: 1, dy: 0, t: 0, speed: (trait==='sprinter'?20:40), hp: 1, trait: trait });
@@ -143,20 +148,29 @@
         if(!active) return;
         let nx = player.x + dx, ny = player.y + dy;
         let bAt = bombs.find(b => b.x === nx && b.y === ny);
+        
         if(bAt && player.canKick) {
+            sfx(200, 'sine', 0.1);
             let si = setInterval(() => {
                 let bx = bAt.x + dx, by = bAt.y + dy;
-                if(grid[by] && grid[by][bx] === 0 && !bombs.find(ob => ob.x === bx && ob.y === by)) { bAt.x = bx; bAt.y = by; }
-                else clearInterval(si);
-            }, 80); return;
+                // Collision check for kicked bomb (Walls, Bricks, or Enemies)
+                let hitEnemy = enemies.find(e => e.x === bx && e.y === by);
+                if(grid[by] && grid[by][bx] === 0 && !bombs.find(ob => ob.x === bx && ob.y === by) && !hitEnemy) { 
+                    bAt.x = bx; bAt.y = by; 
+                } else {
+                    clearInterval(si);
+                    if(hitEnemy) sfx(150, 'sawtooth', 0.1); // Thud sound
+                }
+            }, 80); 
+            return;
         } 
         if(!grid[ny] || grid[ny][nx] === 1 || bAt) return;
         if((grid[ny][nx] === 2 || grid[ny][nx] === 4) && !player.canPhase) return;
         player.x = nx; player.y = ny;
         if(grid[ny][nx] === 3 && enemies.length === 0) {
-            if(stage === 10) { alert("THE NIGHTMARE ENDS. YOU ESCAPED."); location.reload(); return; }
+            if(stage === 10) { alert("THE CORE IS DESTROYED. REALITY RESTORED."); location.reload(); return; }
             active = false; 
-            document.getElementById('lore-body').innerText = LORE[stage] || "The deeper you go, the less human you feel.";
+            document.getElementById('lore-body').innerText = LORE[stage] || "...Static...";
             document.getElementById('shop-screen').classList.remove('hidden'); 
             updateUI();
         }
@@ -196,6 +210,10 @@
         document.getElementById('gold-txt').innerText = gold;
         document.getElementById('shop-gold').innerText = gold;
         document.getElementById('stage-txt').innerText = stage;
+        if(player.hp <= 0 && active) {
+            active = false;
+            document.getElementById('death-screen').classList.remove('hidden');
+        }
     }
 
     function nextStage() { stage++; document.getElementById('shop-screen').classList.add('hidden'); buildLevel(); active = true; }
@@ -227,8 +245,8 @@
         if(active) {
             for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) {
                 let x = c*TILE, y = r*TILE;
-                if(grid[r][c] === 1) { ctx.fillStyle='#333'; ctx.fillRect(x,y,TILE,TILE); }
-                else if(grid[r][c] === 2 || grid[r][c] === 4) { ctx.fillStyle=(stage > 5)?'#444':'#8a3a24'; ctx.fillRect(x+1, y+1, TILE-2, TILE-2); }
+                if(grid[r][c] === 1) { ctx.fillStyle='#333'; ctx.fillRect(x,y,TILE,TILE); ctx.strokeStyle="#444"; ctx.strokeRect(x+2,y+2,TILE-4,TILE-4); }
+                else if(grid[r][c] === 2 || grid[r][c] === 4) { ctx.fillStyle=(stage > 5)?'#444':'#8a3a24'; ctx.fillRect(x+1, y+1, TILE-2, TILE-2); ctx.strokeStyle="#5a2a1a"; ctx.strokeRect(x+3,y+3,TILE-6,TILE-6); }
                 else if(grid[r][c] === 3) { ctx.fillStyle='#000'; ctx.fillRect(x,y,TILE,TILE); ctx.strokeStyle="#0f0"; ctx.strokeRect(x+4,y+4,TILE-8,TILE-8); }
             }
             bombs.forEach((b, i) => {
@@ -247,11 +265,10 @@
                     else { let d = [[0,1],[0,-1],[1,0],[-1,0]][Math.floor(Math.random()*4)]; e.dx = d[0]; e.dy = d[1]; }
                     e.t = 0;
                 }
-                if(e.x === player.x && e.y === player.y) { if(player.invuln === 0) { player.hp--; player.invuln = 60; } }
+                if(e.x === player.x && e.y === player.y) { if(player.invuln === 0) { player.hp--; player.invuln = 60; sfx(40, 'sine', 0.8); } }
             });
             drawHuman(player.x, player.y, player.color, frame, player.invuln, false, false);
             if(player.invuln > 0) player.invuln--;
-            if(player.hp <= 0) location.reload();
             updateUI();
         }
         frame++; requestAnimationFrame(loop);
