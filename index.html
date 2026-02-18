@@ -3,94 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SlenderHunt: Fit Edition</title>
+    <title>SlenderHunt: Pro</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { background: #000; color: #eee; font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; height: 100vh; width: 100vw; }
         
-        /* Force the body to never scroll and fit exactly to the screen */
-        body { 
-            background: #000; 
-            color: #eee; 
-            font-family: sans-serif; 
-            overflow: hidden; 
-            display: flex; 
-            flex-direction: column; 
-            height: 100vh; 
-            width: 100vw;
-        }
+        /* Layout Sections */
+        #game-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 5px; min-height: 0; }
+        canvas { background: #2d5a27; display: block; border: 2px solid #444; max-height: 100%; max-width: 100%; object-fit: contain; image-rendering: pixelated; }
 
-        /* 1. Slim UI Bar */
-        #ui-bar { 
-            height: 40px;
-            width: 100%; 
-            display: flex; 
-            justify-content: space-around; 
-            align-items: center;
-            background: #111; 
-            font-size: 12px; 
-            color: #f1c40f;
-            border-bottom: 1px solid #333;
-        }
+        #dashboard { height: 260px; width: 100%; background: #111; border-top: 2px solid #333; display: flex; flex-direction: column; align-items: center; padding: 5px; }
+        
+        .stats-row { width: 100%; display: flex; justify-content: space-around; font-size: 11px; color: #f1c40f; margin-bottom: 5px; font-weight: bold; }
+        .inv-row { font-size: 10px; color: #3498db; margin-bottom: 8px; }
 
-        /* 2. Flexible Canvas Area - This will shrink to fit the middle space */
-        #canvas-wrap {
-            flex: 1; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 5px;
-            min-height: 0; /* Important for flex shrink */
-        }
-
-        canvas { 
-            background: #2d5a27; 
-            display: block; 
-            border: 2px solid #444; 
-            max-height: 100%; 
-            max-width: 100%; 
-            object-fit: contain;
-            image-rendering: pixelated; 
-        }
-
-        /* 3. Compact Control Section */
-        .controls-wrap {
-            height: 220px; /* Fixed height for buttons to ensure visibility */
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #050505;
-            padding-bottom: 10px;
-        }
-
-        .dpad { 
-            display: grid; 
-            grid-template-columns: repeat(3, 70px); 
-            grid-template-rows: repeat(3, 65px);
-            grid-gap: 8px; 
-        }
-
-        .btn { 
-            background: #34495e; 
-            border-radius: 10px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            user-select: none; 
-            border-bottom: 4px solid #1a252f; 
-            cursor: pointer; 
-            font-weight: bold; 
-            color: white; 
-            font-size: 13px;
-        }
-
+        .dpad { display: grid; grid-template-columns: repeat(3, 75px); grid-template-rows: repeat(3, 60px); grid-gap: 8px; }
+        .btn { background: #34495e; border-radius: 12px; display: flex; align-items: center; justify-content: center; user-select: none; border-bottom: 4px solid #1a252f; cursor: pointer; font-weight: bold; color: white; font-size: 12px; }
         .btn:active { border-bottom: 0; transform: translateY(3px); background: #2c3e50; }
         #bomb-btn { background: #e74c3c; border-bottom-color: #c0392b; }
 
-        /* Screens */
-        .overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
-        .card { background: #1a1a1a; padding: 15px; margin: 5px; border-radius: 10px; width: 280px; border: 1px solid #444; cursor: pointer; }
+        /* Overlays */
+        .overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; text-align: center; }
+        .card { background: #1a1a1a; padding: 12px; margin: 5px; border-radius: 10px; width: 280px; border: 1px solid #444; cursor: pointer; }
         .hidden { display: none !important; }
+        .shop-item { display: flex; justify-content: space-between; width: 100%; color: #fff; padding: 5px; border-bottom: 1px solid #333; }
     </style>
 </head>
 <body>
@@ -102,22 +38,28 @@
     <div class="card" onclick="setupGame('Tank', 10, 5, false, false, true, '#e67e22')"><b>JUGGERNAUT</b><p>HP: 10 | HUGE RANGE</p></div>
 </div>
 
-<div id="gameover-screen" class="overlay hidden">
-    <h1>WIA</h1>
-    <div class="card" onclick="location.reload()"><b>REDEPLOY</b></div>
+<div id="shop-screen" class="overlay hidden">
+    <h2 style="color:#f1c40f">MERCHANT</h2>
+    <p>Gold: $<span id="shop-gold">0</span></p>
+    <div class="card" onclick="buy('mine')"><div class="shop-item"><span>Landmine</span><span>$50</span></div></div>
+    <div class="card" onclick="buy('ice')"><div class="shop-item"><span>Ice Bomb</span><span>$40</span></div></div>
+    <div class="card" onclick="buy('hp')"><div class="shop-item"><span>Heal +1 HP</span><span>$100</span></div></div>
+    <div class="card" onclick="nextStage()" style="background:#27ae60; color:white;"><b>CONTINUE</b></div>
 </div>
 
-<div id="ui-bar">
-    <div>STAGE: <span id="stage-txt">1</span></div>
-    <div>HP: <span id="hp-txt">0</span></div>
-    <div>GOLD: <span id="gold-txt">0</span></div>
-</div>
-
-<div id="canvas-wrap">
+<div id="game-area">
     <canvas id="gameCanvas"></canvas>
 </div>
 
-<div class="controls-wrap">
+<div id="dashboard">
+    <div class="stats-row">
+        <div>LVL: <span id="st-txt">1</span></div>
+        <div>HP: <span id="hp-txt">0</span></div>
+        <div>GOLD: $<span id="gd-txt">0</span></div>
+    </div>
+    <div class="inv-row">
+        Mines: <span id="m-txt">0</span> | Ice: <span id="i-txt">0</span>
+    </div>
     <div class="dpad">
         <div></div><div class="btn" onclick="handleMove(0,-1)">UP</div><div></div>
         <div class="btn" onclick="handleMove(-1,0)">LEFT</div><div class="btn" id="bomb-btn" onclick="handleBombAction()">BOMB</div><div class="btn" onclick="handleMove(1,0)">RIGHT</div>
@@ -132,14 +74,25 @@
     canvas.width = COLS * TILE; canvas.height = ROWS * TILE;
 
     let grid = [], bombs = [], enemies = [], explosions = [], gold = 0;
-    let player = { x: 1, y: 1, hp: 0, range: 2, invuln: 0, type: '', canKick: false, canPhase: false, remote: false, color: '#fff' };
+    let player = { x:1, y:1, hp:0, range:2, invuln:0, color:'#fff', mines:0, ice:0, maxB:2 };
     let stage = 1, active = false, frame = 0;
 
+    // --- SOUND ENGINE ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(freq, type, dur) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + dur);
+    }
+
     function setupGame(type, hp, range, kick, phase, remote, color) {
-        Object.assign(player, { type, hp, range, canKick: kick, canPhase: phase, remote: remote, color: color, x: 1, y: 1 });
+        Object.assign(player, { type, hp, range, canKick: kick, canPhase: phase, remote: remote, color: color, x:1, y:1, mines:0, ice:0 });
         document.getElementById('intro-screen').classList.add('hidden');
-        buildLevel();
-        active = true;
+        buildLevel(); active = true; playSound(440, 'square', 0.2);
     }
 
     function buildLevel() {
@@ -149,7 +102,7 @@
             grid[r] = [];
             for (let c = 0; c < COLS; c++) {
                 if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 || (r % 2 === 0 && c % 2 === 0)) grid[r][c] = 1;
-                else grid[r][c] = (Math.random() < (isBoss ? 0.15 : 0.3) && !(r < 3 && c < 3)) ? 2 : 0;
+                else grid[r][c] = (Math.random() < 0.3 && !(r < 3 && c < 3)) ? 2 : 0;
             }
         }
         if (isBoss) enemies.push({ x: 9, y: 9, dx: -1, dy: 0, t: 0, speed: 12, hp: 15, isBoss: true });
@@ -158,34 +111,27 @@
             for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) if(grid[r][c]===2) bricks.push({r,c});
             if(bricks.length) grid[bricks[0].r][bricks[0].c] = 4;
             for(let i=0; i < stage + 1; i++) {
-                let rx, ry; do { rx = Math.floor(Math.random() * COLS); ry = Math.floor(Math.random() * ROWS); } while(grid[ry][rx] !== 0 || (rx < 4 && ry < 4));
-                enemies.push({ x: rx, y: ry, dx: 1, dy: 0, t: 0, speed: 30, hp: 1, isBoss: false });
+                let rx, ry; do { rx = Math.floor(Math.random()*COLS); ry = Math.floor(Math.random()*ROWS); } while(grid[ry][rx] !== 0 || (rx < 4 && ry < 4));
+                enemies.push({ x: rx, y: ry, dx: 1, dy: 0, t: 0, speed: 35, hp: 1, frozen: 0 });
             }
         }
     }
 
-    function drawHuman(x, y, color, frame, invuln, isEnemy, isBoss, hp) {
-        if (invuln % 6 < 3 && invuln > 0) return;
-        const cx = x * TILE + TILE/2, cy = y * TILE + TILE/2;
-        const walk = Math.sin(frame * 0.2) * 3;
-        const sm = isBoss ? 1.4 : 1;
-        ctx.fillStyle = "#111"; ctx.fillRect(cx - (6*sm), cy + (8*sm) + walk, 5*sm, 6*sm);
-        ctx.fillRect(cx + (1*sm), cy + (8*sm) - walk, 5*sm, 6*sm);
-        ctx.fillStyle = isEnemy ? (isBoss ? "#000" : "#333") : color;
-        ctx.fillRect(cx - (8*sm), cy - (4*sm), 16*sm, 14*sm);
-        ctx.fillStyle = "#FFDBAC"; ctx.fillRect(cx - (6*sm), cy - (14*sm), 12*sm, 11*sm);
-        ctx.fillStyle = isEnemy ? "#c0392b" : "#1a1a1a";
-        ctx.fillRect(cx - (7*sm), cy - (15*sm), 14*sm, 6*sm);
-        if(isBoss) {
-            ctx.fillStyle = "#f00"; ctx.fillRect(x*TILE, y*TILE-10, (hp/15)*TILE, 4);
-        }
+    function buy(item) {
+        if (item === 'mine' && gold >= 50) { gold -= 50; player.mines++; playSound(600, 'sine', 0.1); }
+        if (item === 'ice' && gold >= 40) { gold -= 40; player.ice++; playSound(600, 'sine', 0.1); }
+        if (item === 'hp' && gold >= 100) { gold -= 100; player.hp++; playSound(800, 'sine', 0.2); }
+        updateUI();
     }
+
+    function nextStage() { stage++; document.getElementById('shop-screen').classList.add('hidden'); buildLevel(); active = true; }
 
     function handleMove(dx, dy) {
         if(!active) return;
         let nx = player.x + dx, ny = player.y + dy;
         let bAt = bombs.find(b => b.x === nx && b.y === ny);
         if(bAt && player.canKick) {
+            playSound(200, 'sine', 0.1);
             let si = setInterval(() => {
                 let bx = bAt.x + dx, by = bAt.y + dy;
                 if(grid[by][bx] === 0 && !bombs.find(ob => ob.x === bx && ob.y === by)) { bAt.x = bx; bAt.y = by; }
@@ -196,39 +142,73 @@
         if(bAt || grid[ny][nx] === 1) return;
         if((grid[ny][nx] === 2 || grid[ny][nx] === 4) && !player.canPhase) return;
         player.x = nx; player.y = ny;
-        if(grid[ny][nx] === 3 && enemies.length === 0) {
-            if(stage === 5) { active = false; location.reload(); return; }
-            stage++; buildLevel();
+        if(grid[ny][nx] === 3 && enemies.length === 0) { 
+            active = false; document.getElementById('shop-screen').classList.remove('hidden'); 
         }
     }
 
     function handleBombAction() {
         if(!active) return;
         if(player.remote && bombs.length > 0) {
-            while(bombs.length > 0) { let b = bombs.shift(); explode(b.x, b.y); }
-        } else if(bombs.length < 3) {
-            if(!bombs.find(b => b.x === player.x && b.y === player.y)) bombs.push({ x: player.x, y: player.y, timer: player.remote ? 9999 : 100 });
+            while(bombs.length > 0) { let b = bombs.shift(); explode(b.x, b.y, b.type); }
+        } else {
+            if(!bombs.find(b => b.x === player.x && b.y === player.y)) {
+                let type = 'reg';
+                if(player.ice > 0) { type = 'ice'; player.ice--; }
+                else if(player.mines > 0) { type = 'mine'; player.mines--; }
+                
+                bombs.push({ x: player.x, y: player.y, timer: type==='mine'?9999:(type==='ice'?60:100), type: type });
+                playSound(150, 'triangle', 0.1);
+            }
         }
+        updateUI();
     }
 
-    function explode(bx, by) {
+    function explode(bx, by, type) {
+        playSound(100, 'sawtooth', 0.3);
         [[0,0],[0,1],[0,-1],[1,0],[-1,0]].forEach(d => {
             for(let i=0; i <= player.range; i++) {
                 let ex = bx + d[0] * i, ey = by + d[1] * i;
                 if(grid[ey][ex] === 1) break;
-                explosions.push({ x: ex, y: ey, life: 15 });
+                explosions.push({ x: ex, y: ey, life: 15, ice: type==='ice' });
                 if(grid[ey][ex] === 2 || grid[ey][ex] === 4) {
                     if(Math.random() > 0.6) gold += 15;
                     grid[ey][ex] = (grid[ey][ex] === 4) ? 3 : 0; break; 
                 }
                 enemies.forEach((e, idx) => {
                     if (e.x === ex && e.y === ey) {
-                        e.hp--; if (e.hp <= 0) { if (e.isBoss) grid[e.y][e.x] = 3; enemies.splice(idx, 1); gold += 50; }
+                        if(type === 'ice') e.frozen = 180;
+                        else {
+                            e.hp--; if (e.hp <= 0) { if (e.isBoss) grid[e.y][e.x] = 3; enemies.splice(idx, 1); gold += 50; }
+                        }
                     }
                 });
-                if(player.x === ex && player.y === ey) { if(player.invuln === 0) { player.hp--; player.invuln = 60; } }
+                if(player.x === ex && player.y === ey) { 
+                    if(player.invuln === 0 && type !== 'ice') { player.hp--; player.invuln = 60; playSound(50, 'sine', 0.5); } 
+                }
             }
         });
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('hp-txt').innerText = player.hp;
+        document.getElementById('st-txt').innerText = stage;
+        document.getElementById('gd-txt').innerText = gold;
+        document.getElementById('shop-gold').innerText = gold;
+        document.getElementById('m-txt').innerText = player.mines;
+        document.getElementById('i-txt').innerText = player.ice;
+    }
+
+    function drawHuman(x, y, color, frame, invuln, isEnemy, isBoss, hp, frozen) {
+        if (invuln % 6 < 3 && invuln > 0) return;
+        const cx = x * TILE + TILE/2, cy = y * TILE + TILE/2;
+        const walk = frozen ? 0 : Math.sin(frame * 0.2) * 3;
+        const sm = isBoss ? 1.4 : 1;
+        ctx.fillStyle = frozen ? "#0ff" : (isEnemy ? (isBoss ? "#000" : "#333") : color);
+        ctx.fillRect(cx - (8*sm), cy - (4*sm), 16*sm, 14*sm); // Body
+        ctx.fillStyle = "#FFDBAC"; ctx.fillRect(cx - (6*sm), cy - (14*sm), 12*sm, 11*sm); // Face
+        if(isBoss) { ctx.fillStyle = "#f00"; ctx.fillRect(x*TILE, y*TILE-10, (hp/15)*TILE, 4); }
     }
 
     function loop() {
@@ -237,35 +217,38 @@
             for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) {
                 let x = c*TILE, y = r*TILE;
                 if(grid[r][c] === 1) { ctx.fillStyle='#333'; ctx.fillRect(x,y,TILE,TILE); }
-                else if(grid[r][c] === 2 || grid[r][c] === 4) { 
-                    ctx.fillStyle='#8a3a24'; ctx.fillRect(x+1, y+1, TILE-2, TILE-2);
-                    ctx.strokeStyle="#5a2a1a"; ctx.strokeRect(x+3,y+3,TILE-6,TILE-6);
-                }
+                else if(grid[r][c] === 2 || grid[r][c] === 4) { ctx.fillStyle='#8a3a24'; ctx.fillRect(x+1, y+1, TILE-2, TILE-2); }
                 else if(grid[r][c] === 3) { ctx.fillStyle='#000'; ctx.fillRect(x,y,TILE,TILE); ctx.strokeStyle="#0f0"; ctx.strokeRect(x+4,y+4,TILE-8,TILE-8); }
             }
             bombs.forEach((b, i) => {
-                const s = 12 + Math.sin(frame * 0.2) * 2;
-                ctx.fillStyle = player.remote ? "#9b59b6" : "#111";
-                ctx.beginPath(); ctx.arc(b.x*TILE+20, b.y*TILE+20, s, 0, 7); ctx.fill();
-                if(!player.remote) { b.timer--; if(b.timer <= 0) { explode(b.x, b.y); bombs.splice(i, 1); } }
+                ctx.fillStyle = b.type==='ice'?'#0ff':(b.type==='mine'?'#555':'#111');
+                ctx.beginPath(); ctx.arc(b.x*TILE+20, b.y*TILE+20, 12, 0, 7); ctx.fill();
+                if(b.type === 'mine') {
+                    if(enemies.find(e => e.x === b.x && e.y === b.y)) { explode(b.x, b.y, 'mine'); bombs.splice(i,1); }
+                } else if(!player.remote) {
+                    b.timer--; if(b.timer <= 0) { explode(b.x, b.y, b.type); bombs.splice(i, 1); }
+                }
             });
-            ctx.fillStyle = 'rgba(255,255,255,0.7)'; explosions.forEach((ex, i) => { ctx.fillRect(ex.x*TILE, ex.y*TILE, TILE, TILE); ex.life--; if(ex.life <= 0) explosions.splice(i, 1); });
+            explosions.forEach((ex, i) => { 
+                ctx.fillStyle = ex.ice ? 'rgba(0,255,255,0.5)' : 'rgba(255,255,255,0.7)';
+                ctx.fillRect(ex.x*TILE, ex.y*TILE, TILE, TILE); 
+                ex.life--; if(ex.life <= 0) explosions.splice(i, 1); 
+            });
             enemies.forEach(e => {
-                drawHuman(e.x, e.y, "#e74c3c", frame, 0, true, e.isBoss, e.hp);
+                drawHuman(e.x, e.y, "#e74c3c", frame, 0, true, e.isBoss, e.hp, e.frozen > 0);
+                if(e.frozen > 0) { e.frozen--; return; }
                 e.t++; if(e.t > e.speed) {
                     let nx = e.x + e.dx, ny = e.y + e.dy;
                     if(grid[ny] && grid[ny][nx] === 0 && !bombs.find(b => b.x === nx && b.y === ny)) { e.x = nx; e.y = ny; }
                     else { let d = [[0,1],[0,-1],[1,0],[-1,0]][Math.floor(Math.random()*4)]; e.dx = d[0]; e.dy = d[1]; }
                     e.t = 0;
                 }
-                if(e.x === player.x && e.y === player.y) { if(player.invuln === 0) { player.hp--; player.invuln = 60; } }
+                if(e.x === player.x && e.y === player.y) { if(player.invuln === 0) { player.hp--; player.invuln = 60; playSound(50, 'sine', 0.5); } }
             });
             drawHuman(player.x, player.y, player.color, frame, player.invuln, false, false);
             if(player.invuln > 0) player.invuln--;
-            if(player.hp <= 0) { active = false; document.getElementById('gameover-screen').classList.remove('hidden'); }
-            document.getElementById('hp-txt').innerText = player.hp;
-            document.getElementById('stage-txt').innerText = stage;
-            document.getElementById('gold-txt').innerText = gold;
+            if(player.hp <= 0) location.reload();
+            updateUI();
         }
         frame++; requestAnimationFrame(loop);
     }
