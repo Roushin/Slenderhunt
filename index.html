@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SlenderHunt: GitHub Edition</title>
+    <title>SlenderHunt: Rollback Edition</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body { background: #000; color: #eee; font-family: 'Courier New', Courier, monospace; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
         #ui-bar { width: 100%; max-width: 440px; padding: 12px; display: flex; justify-content: space-between; background: #1a1a1a; border-bottom: 3px solid #333; font-weight: bold; color: #f1c40f; }
-        canvas { background: #2d5a27; display: block; border: 5px solid #444; margin: 10px 0; touch-action: none; image-rendering: pixelated; }
+        canvas { background: #2d5a27; display: block; border: 5px solid #444; margin: 10px 0; touch-action: none; }
         .controls { display: grid; grid-template-columns: repeat(3, 85px); grid-gap: 15px; padding: 10px; }
         .btn { width: 85px; height: 85px; background: #34495e; border-radius: 20px; display: flex; align-items: center; justify-content: center; user-select: none; border-bottom: 8px solid #1a252f; cursor: pointer; font-weight: bold; color: white; }
         .btn:active { border-bottom: 0; transform: translateY(6px); background: #2c3e50; }
@@ -16,33 +16,30 @@
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
         .card { background: #1a1a1a; padding: 20px; margin: 10px; border-radius: 15px; width: 100%; max-width: 340px; border: 2px solid #444; cursor: pointer; }
         .hidden { display: none !important; }
-        h1 { font-size: 40px; color: #e74c3c; margin-bottom: 20px; letter-spacing: 4px; }
+        h1 { font-size: 40px; color: #e74c3c; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
 <div id="intro-screen" class="overlay">
     <h1>SLENDERHUNT</h1>
-    <p id="loading-msg" style="margin-bottom:20px; color: #888;">SEARCHING FOR SPRITES...</p>
-    <div id="class-list" class="hidden">
-        <div class="card" onclick="setupGame('Classic', 5, 2, true, false, false, 0)"><b>WHITE SQUAD</b><p>HP: 5 | KICK BOMB | TIMED</p></div>
-        <div class="card" onclick="setupGame('Ninja', 3, 3, false, true, true, 420)"><b>GREEN PHANTOM</b><p>HP: 3 | PHASE BRICKS | REMOTE</p></div>
-        <div class="card" onclick="setupGame('Tank', 10, 5, false, false, true, 250)"><b>BLUE TANK</b><p>HP: 10 | HUGE RANGE | REMOTE</p></div>
-    </div>
+    <div class="card" onclick="setupGame('Classic', 5, 2, true, false, false, '#3498db')"><b>SOLDIER</b><p>HP: 5 | KICK BOMB | TIMED</p></div>
+    <div class="card" onclick="setupGame('Ninja', 3, 3, false, true, true, '#2ecc71')"><b>NINJA</b><p>HP: 3 | PHASE BRICKS | REMOTE</p></div>
+    <div class="card" onclick="setupGame('Tank', 10, 5, false, false, true, '#e67e22')"><b>JUGGERNAUT</b><p>HP: 10 | HUGE RANGE | REMOTE</p></div>
 </div>
 
 <div id="gameover-screen" class="overlay hidden">
-    <h1 style="color:white">TERMINATED</h1>
-    <div class="card" onclick="location.reload()"><b>RESTART MISSION</b></div>
+    <h1 style="color:white">WIA</h1>
+    <div class="card" onclick="location.reload()"><b>REDEPLOY</b></div>
 </div>
 
 <div id="victory-screen" class="overlay hidden">
-    <h1 style="color:#f1c40f">MISSION COMPLETE</h1>
+    <h1 style="color:#f1c40f">MISSION CLEAR</h1>
     <div class="card" onclick="location.reload()"><b>PLAY AGAIN</b></div>
 </div>
 
 <div id="ui-bar">
-    <div>STAGE: <span id="stage-txt">1</span>/5</div>
+    <div>LVL: <span id="stage-txt">1</span>/5</div>
     <div>HP: <span id="hp-txt">0</span></div>
     <div>GOLD: <span id="gold-txt">0</span></div>
 </div>
@@ -59,33 +56,19 @@
     const TILE = 40, ROWS = 11, COLS = 11;
     canvas.width = COLS * TILE; canvas.height = ROWS * TILE;
 
-    // --- SPRITE LOADING LOGIC ---
-    const spriteSheet = new Image();
-    spriteSheet.src = 'sprites.jpg'; // Path to your file on GitHub
-
-    spriteSheet.onload = () => {
-        document.getElementById('loading-msg').innerText = "SYSTEMS ONLINE";
-        document.getElementById('class-list').classList.remove('hidden');
-    };
-
-    spriteSheet.onerror = () => {
-        document.getElementById('loading-msg').innerText = "ERROR: sprites.jpg NOT FOUND";
-        document.getElementById('loading-msg').style.color = "red";
-    };
-
-    let grid = [], bombs = [], enemies = [], explosions = [], gold = 0;
-    let player = { x: 1, y: 1, hp: 0, range: 2, invuln: 0, type: '', canKick: false, canPhase: false, remote: false, spriteY: 0, superMode: false };
+    let grid = [], bombs = [], enemies = [], explosions = [], items = [], gold = 0;
+    let player = { x: 1, y: 1, hp: 0, range: 2, invuln: 0, type: '', canKick: false, canPhase: false, remote: false, color: '#fff', superMode: false };
     let stage = 1, active = false, frame = 0;
 
-    function setupGame(type, hp, range, kick, phase, remote, spriteY) {
-        Object.assign(player, { type, hp, range, canKick: kick, canPhase: phase, remote: remote, spriteY: spriteY, x: 1, y: 1 });
+    function setupGame(type, hp, range, kick, phase, remote, color) {
+        Object.assign(player, { type, hp, range, canKick: kick, canPhase: phase, remote: remote, color: color, x: 1, y: 1 });
         document.getElementById('intro-screen').classList.add('hidden');
         buildLevel();
         active = true;
     }
 
     function buildLevel() {
-        grid = []; bombs = []; enemies = []; explosions = [];
+        grid = []; bombs = []; enemies = []; explosions = []; items = [];
         const isBoss = (stage === 5);
         for (let r = 0; r < ROWS; r++) {
             grid[r] = [];
@@ -94,16 +77,47 @@
                 else grid[r][c] = (Math.random() < (isBoss ? 0.15 : 0.3) && !(r < 3 && c < 3)) ? 2 : 0;
             }
         }
-        if (isBoss) {
-            enemies.push({ x: 9, y: 9, dx: -1, dy: 0, t: 0, speed: 12, hp: 15, isBoss: true, spriteY: 170 });
-        } else {
+        if (isBoss) enemies.push({ x: 9, y: 9, dx: -1, dy: 0, t: 0, speed: 12, hp: 15, isBoss: true });
+        else {
             let bricks = [];
             for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) if(grid[r][c]===2) bricks.push({r,c});
-            if(bricks.length) grid[bricks[Math.floor(Math.random()*bricks.length)].r][bricks[0].c] = 4;
+            if(bricks.length) grid[bricks[0].r][bricks[0].c] = 4;
             for(let i=0; i < stage + 1; i++) {
                 let rx, ry; do { rx = Math.floor(Math.random() * COLS); ry = Math.floor(Math.random() * ROWS); } while(grid[ry][rx] !== 0 || (rx < 4 && ry < 4));
-                enemies.push({ x: rx, y: ry, dx: 1, dy: 0, t: 0, speed: 35, hp: 1, spriteY: 330 }); // Yellow Enemies
+                enemies.push({ x: rx, y: ry, dx: 1, dy: 0, t: 0, speed: 30, hp: 1, isBoss: false });
             }
+        }
+    }
+
+    function drawHuman(x, y, color, frame, invuln, isEnemy, isBoss, hp) {
+        if (invuln % 6 < 3 && invuln > 0) return;
+        const cx = x * TILE + TILE/2, cy = y * TILE + TILE/2;
+        const walk = Math.sin(frame * 0.2) * 3;
+        const sizeMult = isBoss ? 1.4 : 1;
+
+        // Legs
+        ctx.fillStyle = "#222";
+        ctx.fillRect(cx - (6 * sizeMult), cy + (8 * sizeMult) + walk, 5 * sizeMult, 6 * sizeMult);
+        ctx.fillRect(cx + (1 * sizeMult), cy + (8 * sizeMult) - walk, 5 * sizeMult, 6 * sizeMult);
+
+        // Torso
+        ctx.fillStyle = isEnemy ? (isBoss ? "#000" : "#333") : color;
+        ctx.fillRect(cx - (8 * sizeMult), cy - (4 * sizeMult), 16 * sizeMult, 14 * sizeMult);
+
+        // Head
+        ctx.fillStyle = "#FFDBAC";
+        ctx.fillRect(cx - (6 * sizeMult), cy - (14 * sizeMult), 12 * sizeMult, 11 * sizeMult);
+
+        // Helmet/Eyes
+        ctx.fillStyle = isEnemy ? "#e74c3c" : "#1a1a1a";
+        ctx.fillRect(cx - (7 * sizeMult), cy - (15 * sizeMult), 14 * sizeMult, 6 * sizeMult);
+        ctx.fillStyle = isEnemy ? "#fff" : "#000";
+        ctx.fillRect(cx - (4 * sizeMult), cy - (11 * sizeMult), 2 * sizeMult, 2 * sizeMult);
+        ctx.fillRect(cx + (2 * sizeMult), cy - (11 * sizeMult), 2 * sizeMult, 2 * sizeMult);
+
+        if(isBoss) {
+            ctx.fillStyle = "#f00";
+            ctx.fillRect(x*TILE, y*TILE-10, (hp/15)*TILE, 5);
         }
     }
 
@@ -132,15 +146,13 @@
     function handleBombAction() {
         if(!active) return;
         if(player.remote && bombs.length > 0) {
-            while(bombs.length > 0) { let b = bombs.shift(); triggerExplosion(b.x, b.y); }
+            while(bombs.length > 0) { let b = bombs.shift(); explode(b.x, b.y); }
         } else if(bombs.length < 3) {
-            if(!bombs.find(b => b.x === player.x && b.y === player.y)) {
-                bombs.push({ x: player.x, y: player.y, timer: player.remote ? 9999 : 100 });
-            }
+            if(!bombs.find(b => b.x === player.x && b.y === player.y)) bombs.push({ x: player.x, y: player.y, timer: player.remote ? 9999 : 100 });
         }
     }
 
-    function triggerExplosion(bx, by) {
+    function explode(bx, by) {
         [[0,0],[0,1],[0,-1],[1,0],[-1,0]].forEach(d => {
             for(let i=0; i <= player.range; i++) {
                 let ex = bx + d[0] * i, ey = by + d[1] * i;
@@ -166,21 +178,11 @@
         if(player.hp <= 0) { active = false; document.getElementById('gameover-screen').classList.remove('hidden'); }
     }
 
-    function drawSprite(x, y, rowY, frameIdx) {
-        const sw = 45, sh = 55;
-        const sx = frameIdx * 50; 
-        ctx.drawImage(spriteSheet, sx, rowY, sw, sh, x * TILE, y * TILE, TILE, TILE);
-    }
-
     function loop() {
         ctx.fillStyle = '#2d5a27'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         if(active) {
-            // Evolution logic
             if(gold >= 200 && !player.superMode) {
-                player.superMode = true;
-                player.spriteY = 580; // Aqua Sprite Row
-                player.range += 2;
-                player.hp += 2;
+                player.superMode = true; player.color = "#00ffff"; player.range += 2; player.hp += 2;
             }
 
             for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) {
@@ -197,15 +199,13 @@
                 const s = 12 + Math.sin(frame * 0.2) * 2;
                 ctx.fillStyle = player.remote ? "#9b59b6" : "#111";
                 ctx.beginPath(); ctx.arc(b.x*TILE+20, b.y*TILE+20, s, 0, 7); ctx.fill();
-                if(!player.remote) { b.timer--; if(b.timer <= 0) { triggerExplosion(b.x, b.y); bombs.splice(i, 1); } }
+                if(!player.remote) { b.timer--; if(b.timer <= 0) { explode(b.x, b.y); bombs.splice(i, 1); } }
             });
 
             ctx.fillStyle = 'rgba(255,255,255,0.7)'; explosions.forEach((ex, i) => { ctx.fillRect(ex.x*TILE, ex.y*TILE, TILE, TILE); ex.life--; if(ex.life <= 0) explosions.splice(i, 1); });
             
             enemies.forEach(e => {
-                let anim = Math.floor(frame / 10) % 3;
-                drawSprite(e.x, e.y, e.spriteY, anim);
-                if(e.isBoss) { ctx.fillStyle="#f00"; ctx.fillRect(e.x*TILE, e.y*TILE-10, (e.hp/15)*TILE, 5); }
+                drawHuman(e.x, e.y, "#e74c3c", frame, 0, true, e.isBoss, e.hp);
                 e.t++; if(e.t > e.speed) {
                     let nx = e.x + e.dx, ny = e.y + e.dy;
                     if(grid[ny] && grid[ny][nx] === 0 && !bombs.find(b => b.x === nx && b.y === ny)) { e.x = nx; e.y = ny; }
@@ -215,10 +215,7 @@
                 if(e.x === player.x && e.y === player.y) hit();
             });
 
-            if(player.invuln % 6 < 3) {
-                let anim = Math.floor(frame / 10) % 3;
-                drawSprite(player.x, player.y, player.spriteY, anim);
-            }
+            drawHuman(player.x, player.y, player.color, frame, player.invuln, false, false);
             if(player.invuln > 0) player.invuln--;
             
             document.getElementById('hp-txt').innerText = player.hp;
