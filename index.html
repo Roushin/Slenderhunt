@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SlenderHunt: Dossier</title>
+    <title>SlenderHunt: Detailed</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body { background: #000; color: #eee; font-family: 'Courier New', monospace; overflow: hidden; display: flex; flex-direction: column; height: 100vh; width: 100vw; }
@@ -39,27 +39,22 @@
 
 <div id="intro-screen" class="overlay">
     <h1 style="color:#e74c3c; margin-bottom: 5px;">AGENT SELECTION</h1>
-    <p class="story-text">THE SUBURBS ARE WARPED. Choose an operative to infiltrate Depth 10.</p>
-    
     <div class="card" onclick="setupGame('Vance', 5, 2, true, false, false, '#3498db')">
         <div class="portrait" style="background:#3498db">🪖</div>
-        <div class="card-info"><b>UNIT: VANCE (SOLDIER)</b><p>Ex-Military. Specializes in "Heavy Kick" physics to slide bombs into enemy lines. High HP.</p></div>
+        <div class="card-info"><b>UNIT: VANCE (SOLDIER)</b><p>Ex-Military. High HP. Uses "Heavy Kick" to slide bombs into enemy lines.</p></div>
     </div>
-
     <div class="card" onclick="setupGame('Kaito', 3, 3, false, true, true, '#2ecc71')">
         <div class="portrait" style="background:#2ecc71">🎭</div>
-        <div class="card-info"><b>UNIT: KAITO (NINJA)</b><p>Stealth specialist. Can "Phase" through solid bricks. Uses a Remote Detonator for traps.</p></div>
+        <div class="card-info"><b>UNIT: KAITO (NINJA)</b><p>Stealth specialist. Can "Phase" through bricks. Remote Detonator traps.</p></div>
     </div>
-
     <div class="card" onclick="setupGame('Grom', 10, 5, false, false, true, '#e67e22')">
         <div class="portrait" style="background:#e67e22">🌋</div>
-        <div class="card-info"><b>UNIT: GROM (HEAVY)</b><p>Bio-engineered brute. Massive health and blast radius. Uses Remote Triggering.</p></div>
+        <div class="card-info"><b>UNIT: GROM (HEAVY)</b><p>Massive health and blast radius. Uses Remote Triggering.</p></div>
     </div>
 </div>
 
 <div id="death-screen" class="overlay hidden" style="justify-content: center;">
     <h1 style="color:#e74c3c;">MISSION FAILED</h1>
-    <p class="story-text">Biometric scan failed. Redownloading consciousness...</p>
     <div class="card" onclick="location.reload()" style="background:#e74c3c; color:white; justify-content:center; border:none;"><b>REDEPLOY</b></div>
 </div>
 
@@ -91,7 +86,7 @@
     let player = { x: 1, y: 1, hp: 0, range: 2, invuln: 0, color: '#fff' };
     let stage = 1, active = false, frame = 0, audioCtx = null;
 
-    const LORE = ["","The static thickens...","Watch the corners.","The walls are breathing.","GATEKEEPER DETECTED.","Welcome to the Grey Nest.","Sprinters are active.","Phantoms phase through stone.","The Singularity is near.","END OF REALITY."];
+    const LORE = ["","Static leaks...","Watch the corners.","Walls are breathing.","GATEKEEPER!","The Grey Nest.","Sprinters active.","Phantoms phase.","Almost there.","THE END."];
 
     function initAudio() { if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
     function sfx(freq, type, dur, vol=0.05) {
@@ -130,16 +125,47 @@
             if(bricks.length) grid[bricks[0].r][bricks[0].c] = 4;
             for(let i=0; i < stage + 1; i++) {
                 let rx, ry; do { rx = Math.floor(Math.random() * COLS); ry = Math.floor(Math.random() * ROWS); } while(grid[ry][rx] !== 0 || (rx < 4 && ry < 4));
-                
-                // ENEMY MUTATIONS
-                let trait = 'grunt';
-                let speed = 40;
-                if(stage >= 3 && Math.random() > 0.6) { trait = 'sprinter'; speed = 20; }
-                if(stage >= 6 && Math.random() > 0.7) { trait = 'ghost'; speed = 35; }
-                
-                enemies.push({ x: rx, y: ry, dx: 1, dy: 0, t: 0, speed: speed, hp: 1, trait: trait });
+                let trait = (stage >= 3 && Math.random() > 0.6) ? 'sprinter' : (stage >= 6 && Math.random() > 0.7 ? 'ghost' : 'grunt');
+                enemies.push({ x: rx, y: ry, dx: 1, dy: 0, t: 0, speed: (trait==='sprinter'?20:40), hp: 1, trait });
             }
         }
+    }
+
+    function drawHuman(x, y, color, frame, invuln, isEnemy, isBoss, hp, trait) {
+        if (invuln % 6 < 3 && invuln > 0) return;
+        const cx = x * TILE + TILE/2, cy = y * TILE + TILE/2;
+        const walk = Math.sin(frame * 0.2) * 3;
+        const sm = isBoss ? 1.5 : 1;
+        const blink = (frame % 120 < 5);
+
+        // Legs
+        ctx.fillStyle = "#111";
+        ctx.fillRect(cx-(6*sm), cy+(8*sm)+walk, 5*sm, 6*sm);
+        ctx.fillRect(cx+(1*sm), cy+(8*sm)-walk, 5*sm, 6*sm);
+
+        // Body
+        let c = isEnemy ? (trait==='sprinter'?'#e74c3c':(trait==='ghost'?'#8e44ad':'#333')) : color;
+        if(isBoss) c = "#000";
+        ctx.fillStyle = c;
+        ctx.fillRect(cx-(8*sm), cy-(4*sm), 16*sm, 14*sm);
+
+        // Head
+        ctx.fillStyle = "#FFDBAC";
+        ctx.fillRect(cx-(6*sm), cy-(14*sm), 12*sm, 11*sm);
+
+        // Face Details (Eyes)
+        if (!blink) {
+            ctx.fillStyle = isEnemy ? "#fff" : "#000";
+            if (isEnemy && trait === 'sprinter') ctx.fillStyle = "#ffff00"; // Yellow eyes for sprinters
+            ctx.fillRect(cx-(4*sm), cy-(10*sm), 2*sm, 2*sm);
+            ctx.fillRect(cx+(2*sm), cy-(10*sm), 2*sm, 2*sm);
+        }
+
+        // Visor/Mask
+        ctx.fillStyle = isEnemy ? "#c0392b" : "#1a1a1a";
+        ctx.fillRect(cx-(7*sm), cy-(15*sm), 14*sm, 4*sm);
+
+        if(isBoss) { ctx.fillStyle = "#f00"; ctx.fillRect(x*TILE, y*TILE-10, (hp/(stage===10?50:20))*TILE, 4); }
     }
 
     function handleMove(dx, dy) {
@@ -160,17 +186,18 @@
         player.x = nx; player.y = ny;
         if(grid[ny][nx] === 3 && enemies.length === 0) {
             active = false; 
-            document.getElementById('lore-body').innerText = LORE[stage] || "...";
+            if(stage === 10) { alert("VICTORY!"); location.reload(); return; }
+            document.getElementById('lore-body').innerText = LORE[stage];
             document.getElementById('shop-screen').classList.remove('hidden'); 
             document.getElementById('shop-gold').innerText = gold;
         }
     }
 
     function handleBombAction() {
-        if(!active) return;
+        if(!active || bombs.length >= 3) return;
         if(player.remote && bombs.length > 0) {
             while(bombs.length > 0) { let b = bombs.shift(); explode(b.x, b.y); }
-        } else if (bombs.length < 3) {
+        } else {
             if(!bombs.find(b => b.x === player.x && b.y === player.y)) {
                 bombs.push({ x: player.x, y: player.y, timer: player.remote ? 9999 : 100 });
                 sfx(100, 'square', 0.1);
@@ -202,24 +229,6 @@
 
     function nextStage() { stage++; document.getElementById('shop-screen').classList.add('hidden'); buildLevel(); active = true; }
 
-    function drawHuman(x, y, color, frame, invuln, isEnemy, isBoss, hp, trait) {
-        if (invuln % 6 < 3 && invuln > 0) return;
-        const cx = x * TILE + TILE/2, cy = y * TILE + TILE/2;
-        const walk = Math.sin(frame * 0.2) * 3;
-        const sm = isBoss ? 1.5 : 1;
-        
-        ctx.fillStyle = "#111"; ctx.fillRect(cx-(6*sm), cy+(8*sm)+walk, 5*sm, 6*sm);
-        ctx.fillRect(cx+(1*sm), cy+(8*sm)-walk, 5*sm, 6*sm);
-        
-        let c = isEnemy ? (trait==='sprinter'?'#e74c3c':(trait==='ghost'?'#8e44ad':'#333')) : color;
-        if(isBoss) c = "#000";
-        ctx.fillStyle = c; ctx.fillRect(cx-(8*sm), cy-(4*sm), 16*sm, 14*sm);
-        ctx.fillStyle = "#FFDBAC"; ctx.fillRect(cx-(6*sm), cy-(14*sm), 12*sm, 11*sm);
-        ctx.fillStyle = isEnemy ? "#c0392b" : "#1a1a1a"; ctx.fillRect(cx-(7*sm), cy-(15*sm), 14*sm, 6*sm);
-        
-        if(isBoss) { ctx.fillStyle = "#f00"; ctx.fillRect(x*TILE, y*TILE-10, (hp/(stage===10?50:20))*TILE, 4); }
-    }
-
     function loop() {
         ctx.fillStyle = (stage > 5) ? '#1a1a1a' : '#2d5a27'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         if(active) {
@@ -246,7 +255,7 @@
                     else { let d = [[0,1],[0,-1],[1,0],[-1,0]][Math.floor(Math.random()*4)]; e.dx = d[0]; e.dy = d[1]; }
                     e.t = 0;
                 }
-                if(e.x === player.x && e.y === player.y) { if(player.invuln <= 0) { player.hp--; player.invuln = 60; sfx(40, 'sine', 0.8); } }
+                if(e.x === player.x && e.y === player.y && player.invuln <= 0) { player.hp--; player.invuln = 60; sfx(40, 'sine', 0.8); }
             });
             drawHuman(player.x, player.y, player.color, frame, player.invuln, false, false);
             if(player.invuln > 0) player.invuln--;
