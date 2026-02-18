@@ -3,48 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bomber Hero: Fix Edition</title>
+    <title>Bomber Hero Mobile</title>
     <style>
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-        body { background: #111; color: #fff; font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; align-items: center; height: 100vh; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { background: #000; color: #fff; font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
         
-        #ui { width: 100%; max-width: 400px; padding: 12px; display: flex; justify-content: space-between; background: #222; font-size: 14px; border-bottom: 2px solid #444; }
+        #ui { width: 100%; max-width: 400px; padding: 10px; display: flex; justify-content: space-between; background: #222; font-size: 14px; border-bottom: 2px solid #444; }
         
-        canvas { background: #2c3e50; display: block; margin-top: 5px; border: 2px solid #555; touch-action: none; }
+        canvas { background: #2c3e50; display: block; border: 2px solid #555; margin: 5px 0; touch-action: none; }
 
-        .controls { display: grid; grid-template-columns: repeat(3, 75px); grid-gap: 10px; padding: 20px; }
-        .btn { width: 75px; height: 75px; background: #34495e; border-radius: 15px; display: flex; align-items: center; justify-content: center; user-select: none; border-bottom: 5px solid #1a252f; cursor: pointer; font-weight: bold; }
+        /* EXTRA LARGE MOBILE CONTROLS */
+        .controls { display: grid; grid-template-columns: repeat(3, 85px); grid-gap: 12px; padding: 10px; margin-top: 5px; }
+        .btn { width: 85px; height: 85px; background: #34495e; border-radius: 15px; display: flex; align-items: center; justify-content: center; user-select: none; border-bottom: 6px solid #1a252f; cursor: pointer; font-weight: bold; font-size: 16px; }
         .btn:active { border-bottom: 0; transform: translateY(4px); background: #2c3e50; }
-        #bomb-btn { background: #e74c3c; border-color: #c0392b; }
+        #bomb-btn { background: #e74c3c; border-bottom-color: #c0392b; font-size: 14px; }
 
-        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        .char-card { background: #2c3e50; padding: 15px; margin: 10px; border-radius: 12px; width: 100%; max-width: 300px; text-align: center; border: 2px solid #444; }
-        .char-card h3 { color: #f1c40f; margin-bottom: 5px; }
-        .stats { font-size: 12px; color: #bdc3c7; }
+        #overlay { position: fixed; inset: 0; background: #111; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .card { background: #2c3e50; padding: 20px; margin: 10px; border-radius: 15px; width: 100%; max-width: 320px; text-align: center; border: 2px solid #555; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .card b { font-size: 18px; display: block; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
 <div id="overlay">
-    <h1 style="margin-bottom: 20px;">BOMBER HERO</h1>
-    <div class="char-card" onclick="startGame('Knight')">
-        <h3>BLUE KNIGHT</h3>
-        <p class="stats">HP: 5 | POWER: BOMB KICK</p>
+    <h1 style="margin-bottom:20px; color:#f1c40f;">BOMBER HERO</h1>
+    <div class="card" onclick="forceStart('Knight', 5, 2, '#3498db')">
+        <b>BLUE KNIGHT</b>
+        <small>HP: 5 | POWER: BOMB KICK</small>
     </div>
-    <div class="char-card" onclick="startGame('Ninja')">
-        <h3>GREEN NINJA</h3>
-        <p class="stats">HP: 2 | POWER: PHASE WALLS</p>
+    <div class="card" onclick="forceStart('Ninja', 2, 3, '#2ecc71')">
+        <b>GREEN NINJA</b>
+        <small>HP: 2 | POWER: PHASE WALLS</small>
     </div>
-    <div class="char-card" onclick="startGame('Wizard')">
-        <h3>PURPLE WIZARD</h3>
-        <p class="stats">HP: 3 | POWER: REMOTE BOMB</p>
+    <div class="card" onclick="forceStart('Wizard', 3, 6, '#9b59b6')">
+        <b>PURPLE WIZARD</b>
+        <small>HP: 3 | POWER: REMOTE BOMB</small>
     </div>
 </div>
 
 <div id="ui">
-    <div>STAGE <span id="stage-num">1</span></div>
-    <div id="hp-display" style="color:#ff7675">HP: 0</div>
-    <div id="enemy-display">ENEMIES: 0</div>
+    <div id="st">STAGE: 1</div>
+    <div id="hp" style="color:#ff7675">HP: -</div>
+    <div id="en">ENEMIES: -</div>
 </div>
 
 <canvas id="gameCanvas"></canvas>
@@ -56,233 +56,182 @@
 </div>
 
 <script>
-/** 1. CONFIGURATION **/
-const TILE = 32; // Reduced size for better mobile fit
-const ROWS = 11, COLS = 11;
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = COLS * TILE;
-canvas.height = ROWS * TILE;
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const TILE = 32, ROWS = 11, COLS = 11;
+    canvas.width = COLS * TILE;
+    canvas.height = ROWS * TILE;
 
-let grid = [], bombs = [], explosions = [], enemies = [], boss = null;
-let player = { x: 1, y: 1, hp: 0, invuln: 0, range: 2, type: '', canKick: false, canRemote: false, canPhase: false, speed: 40 };
-let stage = 1, gameActive = false;
+    let G = [], B = [], E = [], X = [];
+    let P = { x: 1, y: 1, hp: 0, range: 2, type: '', inv: 0, color: 'blue' };
+    let stage = 1, active = false;
 
-/** 2. GAME START **/
-function startGame(type) {
-    player.type = type;
-    player.canKick = (type === 'Knight');
-    player.canPhase = (type === 'Ninja');
-    player.canRemote = (type === 'Wizard');
-    player.hp = (type === 'Knight') ? 5 : (type === 'Ninja' ? 2 : 3);
-    player.range = (type === 'Wizard') ? 6 : 2;
-    player.speed = (type === 'Ninja') ? 25 : 40;
-    
-    document.getElementById('overlay').style.display = 'none';
-    stage = 1;
-    initLevel(); // Build grid immediately
-    gameActive = true;
-}
-
-function initLevel() {
-    grid = []; bombs = []; explosions = []; enemies = []; boss = null;
-    player.x = 1; player.y = 1;
-    const isBossStage = (stage % 3 === 0);
-
-    // Create Grid Map
-    for (let r = 0; r < ROWS; r++) {
-        grid[r] = [];
-        for (let c = 0; c < COLS; c++) {
-            if (r === 0 || r === ROWS-1 || c === 0 || c === COLS-1 || (r % 2 === 0 && c % 2 === 0)) {
-                grid[r][c] = 1; // Hard wall
-            } else {
-                // Random bricks, but keep starting area clear
-                grid[r][c] = (Math.random() < 0.35 && !(r < 3 && c < 3)) ? 2 : 0;
-            }
-        }
+    function forceStart(type, hp, range, color) {
+        P.type = type; P.hp = hp; P.range = range; P.color = color;
+        P.x = 1; P.y = 1; P.inv = 0;
+        document.getElementById('overlay').style.display = 'none';
+        buildLevel();
+        active = true;
     }
 
-    if(isBossStage) {
-        boss = { x: COLS-2, y: ROWS-2, hp: 5, tick: 0, dx: -1, dy: 0 };
-    } else {
-        // Hide Exit Door under a random brick
-        let bricks = [];
-        for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) if(grid[r][c] === 2) bricks.push({r,c});
-        if(bricks.length) {
-            let d = bricks[Math.floor(Math.random() * bricks.length)];
-            grid[d.r][d.c] = 4; // Hidden Door
-        }
-        // Spawn Enemies
-        for(let i=0; i < 1 + stage; i++) {
-            let ex, ey;
-            do { ex = Math.floor(Math.random() * COLS); ey = Math.floor(Math.random() * ROWS); }
-            while(grid[ey][ex] !== 0 || (ex < 4 && ey < 4));
-            enemies.push({ x: ex, y: ey, dx: 1, dy: 0, tick: 0 });
-        }
-    }
-}
-
-/** 3. LOGIC **/
-function move(dx, dy) {
-    if(!gameActive) return;
-    let nx = player.x + dx, ny = player.y + dy;
-    let bombAtPos = bombs.find(b => b.x === nx && b.y === ny);
-
-    if (bombAtPos && player.canKick) {
-        kickBomb(bombAtPos, dx, dy); return;
-    }
-
-    if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
-        let cell = grid[ny][nx];
-        if (cell !== 1 && !bombs.some(b => b.x === nx && b.y === ny)) {
-            // Can walk if floor, exit, or if Ninja and is a brick
-            if (cell === 0 || cell === 3 || (player.canPhase && (cell === 2 || cell === 4))) {
-                player.x = nx; player.y = ny;
-                if (grid[ny][nx] === 3 && enemies.length === 0 && !boss) { stage++; initLevel(); }
-            }
-        }
-    }
-}
-
-function kickBomb(bomb, dx, dy) {
-    let kickTimer = setInterval(() => {
-        let nextX = bomb.x + dx, nextY = bomb.y + dy;
-        if (nextX > 0 && nextX < COLS-1 && nextY > 0 && nextY < ROWS-1 && 
-            grid[nextY][nextX] === 0 && !bombs.some(b => b.x === nextX && b.y === nextY)) {
-            bomb.x = nextX; bomb.y = nextY;
-        } else { clearInterval(kickTimer); }
-    }, 100);
-}
-
-function handleBomb() {
-    if(!gameActive) return;
-    if (player.canRemote && bombs.length > 0) {
-        let b = bombs.shift(); explode(b.x, b.y);
-    } else if (bombs.length < 3) {
-        if (!bombs.some(b => b.x === player.x && b.y === player.y)) {
-            bombs.push({ x: player.x, y: player.y, timer: player.canRemote ? 999999 : 2000 });
-        }
-    }
-}
-
-function explode(bx, by) {
-    const dirs = [[0,0],[0,1],[0,-1],[1,0],[-1,0]];
-    dirs.forEach(d => {
-        for(let i = (d[0]===0 && d[1]===0 ? 0 : 1); i <= player.range; i++) {
-            let ex = bx + (d[0]*i), ey = by + (d[1]*i);
-            if (ey < 0 || ey >= ROWS || ex < 0 || ex >= COLS || grid[ey][ex] === 1) break;
-            
-            explosions.push({ x: ex, y: ey, life: 15 }); 
-            
-            if (grid[ey][ex] === 2 || grid[ey][ex] === 4) {
-                grid[ey][ex] = (grid[ey][ex] === 4) ? 3 : 0;
-                break; // Explosion stops at brick
-            }
-            
-            enemies = enemies.filter(e => e.x !== ex || e.y !== ey);
-            if(boss && boss.x === ex && boss.y === ey) {
-                boss.hp--; if(boss.hp <= 0) { boss = null; grid[ROWS-2][COLS-2] = 3; }
-            }
-            if (player.x === ex && player.y === ey) takeHit();
-        }
-    });
-}
-
-function takeHit() {
-    if (player.invuln > 0) return;
-    player.hp--; player.invuln = 60;
-    if (player.hp <= 0) { gameActive = false; document.getElementById('overlay').style.display = 'flex'; }
-}
-
-/** 4. MAIN LOOP **/
-function update() {
-    if(gameActive) {
-        // Bomb Timer
-        bombs.forEach((b, i) => {
-            if(!player.canRemote) {
-                b.timer -= 16;
-                if(b.timer <= 0) { explode(b.x, b.y); bombs.splice(i, 1); }
-            }
-        });
-        // Explosion Life
-        explosions.forEach((e, i) => {
-            e.life--;
-            if(e.life <= 0) explosions.splice(i, 1);
-        });
-        // Invuln
-        if(player.invuln > 0) player.invuln--;
-
-        // Actor Movement
-        let actors = boss ? [boss] : enemies;
-        actors.forEach(e => {
-            e.tick++; 
-            if(e.tick > (boss ? 20 : player.speed)) {
-                let nx = e.x + e.dx, ny = e.y + e.dy;
-                if(grid[ny][nx] === 0 && !bombs.some(b => b.x === nx && b.y === ny)) {
-                    e.x = nx; e.y = ny;
+    function buildLevel() {
+        G = []; B = []; E = []; X = [];
+        for (let r = 0; r < ROWS; r++) {
+            G[r] = [];
+            for (let c = 0; c < COLS; c++) {
+                if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 || (r % 2 === 0 && c % 2 === 0)) {
+                    G[r][c] = 1;
                 } else {
-                    let d = [[0,1],[0,-1],[1,0],[-1,0]][Math.floor(Math.random()*4)];
-                    e.dx = d[0]; e.dy = d[1];
+                    G[r][c] = (Math.random() < 0.3 && !(r < 3 && c < 3)) ? 2 : 0;
                 }
-                e.tick = 0;
             }
-            if(e.x === player.x && e.y === player.y) takeHit();
-        });
+        }
+        
+        let bricks = [];
+        for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) if(G[r][c]===2) bricks.push({r,c});
+        if(bricks.length) { 
+            let d = bricks[Math.floor(Math.random()*bricks.length)]; 
+            G[d.r][d.c] = 4; // Door location
+        }
 
-        // UI
-        document.getElementById('hp-display').innerText = "HP: " + player.hp;
-        document.getElementById('stage-num').innerText = stage;
-        document.getElementById('enemy-display').innerText = boss ? "BOSS HP: " + boss.hp : "ENEMIES: " + enemies.length;
-    }
-}
-
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Grid
-    for(let r=0; r<ROWS; r++) {
-        for(let c=0; c<COLS; c++) {
-            let x = c * TILE, y = r * TILE;
-            if(grid[r][c] === 1) { ctx.fillStyle='#1a252f'; ctx.fillRect(x,y,TILE,TILE); }
-            else if(grid[r][c] === 2 || grid[r][c] === 4) { 
-                ctx.fillStyle = player.canPhase ? 'rgba(150,75,0,0.5)' : '#964b00';
-                ctx.fillRect(x+1,y+1,TILE-2,TILE-2); 
-            }
-            else if(grid[r][c] === 3) { ctx.fillStyle='#2ecc71'; ctx.fillRect(x+8,y+8,TILE-16,TILE-16); }
+        for(let i=0; i<stage+1; i++) {
+            let rx, ry; 
+            do { rx=Math.floor(Math.random()*COLS); ry=Math.floor(Math.random()*ROWS); }
+            while(G[ry][rx]!==0 || (rx<4 && ry<4));
+            E.push({x:rx, y:ry, dx:1, dy:0, t:0});
         }
     }
 
-    // Bombs
-    bombs.forEach(b => {
-        ctx.fillStyle = player.canRemote ? '#9b59b6' : '#000';
-        ctx.beginPath(); ctx.arc(b.x*TILE+TILE/2, b.y*TILE+TILE/2, TILE/2.5, 0, Math.PI*2); ctx.fill();
-    });
+    function move(dx, dy) {
+        if(!active) return;
+        let nx = P.x + dx, ny = P.y + dy;
+        if(nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) return;
+        
+        let cell = G[ny][nx];
+        if(cell === 1) return;
+        
+        // Bomb kick logic for Knight
+        let bomb = B.find(b => b.x === nx && b.y === ny);
+        if(bomb && P.type === 'Knight') {
+            slideBomb(bomb, dx, dy);
+            return;
+        } else if (bomb) return;
 
-    // Explosions
-    ctx.fillStyle = 'rgba(255,100,0,0.7)';
-    explosions.forEach(e => ctx.fillRect(e.x*TILE, e.y*TILE, TILE, TILE));
-
-    // Enemies
-    ctx.fillStyle = '#f1c40f';
-    enemies.forEach(e => ctx.fillRect(e.x*TILE+6, e.y*TILE+6, TILE-12, TILE-12));
-    
-    // Boss
-    if(boss) {
-        ctx.fillStyle = '#e67e22'; ctx.fillRect(boss.x*TILE, boss.y*TILE, TILE, TILE);
+        // Ninja Phasing
+        if((cell === 2 || cell === 4) && P.type !== 'Ninja') return;
+        
+        P.x = nx; P.y = ny;
+        if(cell === 3 && E.length === 0) { stage++; buildLevel(); }
     }
 
-    // Player
-    if (gameActive && player.invuln % 6 < 3) {
-        ctx.fillStyle = (player.type === 'Knight') ? '#3498db' : (player.type === 'Ninja' ? '#2ecc71' : '#9b59b6');
-        ctx.fillRect(player.x*TILE+6, player.y*TILE+2, TILE-12, TILE-8);
+    function slideBomb(b, dx, dy) {
+        let si = setInterval(() => {
+            let nx = b.x + dx, ny = b.y + dy;
+            if(G[ny] && G[ny][nx] === 0 && !B.find(ob => ob.x === nx && ob.y === ny)) {
+                b.x = nx; b.y = ny;
+            } else { clearInterval(si); }
+        }, 100);
     }
 
-    update();
-    requestAnimationFrame(draw);
-}
+    function handleBomb() {
+        if(!active) return;
+        if(P.type === 'Wizard' && B.length > 0) {
+            let b = B.shift(); triggerExplosion(b.x, b.y);
+        } else if(B.length < 3) {
+            if(!B.find(b => b.x === P.x && b.y === P.y)) {
+                B.push({x: P.x, y: P.y, t: 120});
+            }
+        }
+    }
 
-// Start Render
-draw();
+    function triggerExplosion(bx, by) {
+        let ds = [[0,0],[0,1],[0,-1],[1,0],[-1,0]];
+        ds.forEach(d => {
+            for(let i=0; i<=P.range; i++) {
+                if(i>0 && d[0]===0 && d[1]===0) continue;
+                let ex = bx + d[0]*i, ey = by + d[1]*i;
+                if(ex<0 || ex>=COLS || ey<0 || ey>=ROWS || G[ey][ex] === 1) break;
+                
+                X.push({x:ex, y:ey, l:15});
+                
+                if(G[ey][ex] === 2 || G[ey][ex] === 4) {
+                    G[ey][ex] = (G[ey][ex] === 4) ? 3 : 0;
+                    break;
+                }
+                E = E.filter(e => e.x !== ex || e.y !== ey);
+                if(P.x === ex && P.y === ey) hit();
+            }
+        });
+    }
+
+    function hit() {
+        if(P.inv > 0) return;
+        P.hp--; P.inv = 60;
+        if(P.hp <= 0) {
+            active = false;
+            alert("GAME OVER! Stage reached: " + stage);
+            location.reload();
+        }
+    }
+
+    function draw() {
+        ctx.fillStyle = '#2c3e50'; 
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        
+        if(!active) { requestAnimationFrame(draw); return; }
+
+        for(let r=0; r<ROWS; r++) {
+            for(let c=0; c<COLS; c++) {
+                let x=c*TILE, y=r*TILE;
+                if(G[r][c] === 1) { ctx.fillStyle='#111'; ctx.fillRect(x,y,TILE,TILE); }
+                else if(G[r][c] === 2 || G[r][c] === 4) { 
+                    ctx.fillStyle = P.type === 'Ninja' ? 'rgba(150,75,0,0.5)' : '#964b00'; 
+                    ctx.fillRect(x+1,y+1,TILE-2,TILE-2); 
+                }
+                else if(G[r][c] === 3) { ctx.fillStyle='#2ecc71'; ctx.fillRect(x+10,y+10,12,12); }
+            }
+        }
+
+        ctx.fillStyle='#000'; 
+        B.forEach(b => {
+            ctx.beginPath(); ctx.arc(b.x*TILE+16, b.y*TILE+16, 12, 0, 7); ctx.fill();
+        });
+
+        ctx.fillStyle='rgba(255,165,0,0.8)'; 
+        X.forEach(x => ctx.fillRect(x.x*TILE, x.y*TILE, TILE, TILE));
+
+        ctx.fillStyle='#e74c3c'; 
+        E.forEach(e => ctx.fillRect(e.x*TILE+8, e.y*TILE+8, 16, 16));
+        
+        if(P.inv % 6 < 3) { 
+            ctx.fillStyle = P.color; 
+            ctx.fillRect(P.x*TILE+6, P.y*TILE+6, 20, 20); 
+        }
+
+        // Logic Updates
+        if(P.type !== 'Wizard') {
+            B.forEach((b,i) => { b.t--; if(b.t<=0) { triggerExplosion(b.x, b.y); B.splice(i,1); } });
+        }
+        X.forEach((x,i) => { x.l--; if(x.l<=0) X.splice(i,1); });
+        if(P.inv > 0) P.inv--;
+        
+        E.forEach(e => {
+            e.t++; if(e.t > 45) {
+                let nx=e.x+e.dx, ny=e.y+e.dy;
+                if(G[ny] && G[ny][nx]===0) { e.x=nx; e.y=ny; }
+                else { e.dx = Math.random()>0.5?1:-1; e.dy = e.dx===0?(Math.random()>0.5?1:-1):0; }
+                e.t=0;
+            }
+            if(e.x===P.x && e.y===P.y) hit();
+        });
+
+        document.getElementById('hp').innerText = "HP: " + P.hp;
+        document.getElementById('st').innerText = "STAGE: " + stage;
+        document.getElementById('en').innerText = "ENEMIES: " + E.length;
+
+        requestAnimationFrame(draw);
+    }
+    draw();
 </script>
 </body>
 </html>
