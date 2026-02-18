@@ -3,69 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SlenderHunt: Definitive</title>
+    <title>SlenderHunt: Fixed GUI</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body { background: #000; color: #eee; font-family: 'Courier New', monospace; overflow: hidden; display: flex; flex-direction: column; height: 100vh; width: 100vw; }
         
-        #ui-bar { height: 35px; width: 100%; display: flex; justify-content: space-around; align-items: center; background: #111; font-size: 11px; color: #f1c40f; flex-shrink: 0; border-bottom: 1px solid #333; }
+        /* Stats Bar Fix */
+        #ui-bar { 
+            height: 40px; width: 100%; display: flex; justify-content: space-around; 
+            align-items: center; background: #1a1a1a; font-size: 12px; color: #f1c40f; 
+            flex-shrink: 0; border-bottom: 2px solid #444; position: relative; z-index: 10;
+        }
+        #ui-bar span { font-weight: bold; color: #fff; }
+
         #game-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; min-height: 0; background: #000; }
-        canvas { background: #2d5a27; display: block; border: 3px solid #444; max-height: 42vh; max-width: 95vw; object-fit: contain; image-rendering: pixelated; }
+        canvas { background: #2d5a27; display: block; border: 4px solid #444; max-height: 45vh; max-width: 95vw; object-fit: contain; image-rendering: pixelated; }
         
-        #control-panel { padding: 5px 0 35px 0; background: #000; width: 100%; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
-        .dpad { display: grid; grid-template-columns: repeat(3, 72px); grid-template-rows: repeat(3, 58px); grid-gap: 10px; }
+        #control-panel { padding: 5px 0 40px 0; background: #000; width: 100%; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+        .dpad { display: grid; grid-template-columns: repeat(3, 75px); grid-template-rows: repeat(3, 62px); grid-gap: 12px; }
         .btn { background: #34495e; border-radius: 12px; display: flex; align-items: center; justify-content: center; user-select: none; border-bottom: 5px solid #1a252f; cursor: pointer; font-weight: bold; color: white; font-size: 14px; }
         .btn:active { border-bottom: 0; transform: translateY(4px); background: #2c3e50; }
         #bomb-btn { background: #e74c3c; border-bottom-color: #c0392b; }
 
-        .overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px; text-align: center; overflow-y: auto; }
-        .card { background: #1a1a1a; padding: 12px; margin: 6px; border-radius: 10px; width: 100%; max-width: 320px; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; text-align: left; }
-        .portrait { width: 50px; height: 50px; background: #333; border-radius: 5px; margin-right: 15px; flex-shrink: 0; border: 2px solid #555; position: relative; overflow: hidden; }
-        .card b { font-size: 14px; color: #f1c40f; display: block; }
-        .card p { font-size: 10px; color: #aaa; line-height: 1.2; margin-top: 3px; }
+        .overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        .card { background: #1a1a1a; padding: 12px; margin: 6px; border-radius: 10px; width: 100%; max-width: 320px; border: 1px solid #444; cursor: pointer; display: flex; align-items: center; }
+        .portrait { width: 45px; height: 45px; background: #333; border-radius: 5px; margin-right: 15px; flex-shrink: 0; border: 2px solid #555; }
         .hidden { display: none !important; }
-        
-        .story-text { color: #f1c40f; font-style: italic; margin: 15px 0; line-height: 1.3; font-size: 12px; max-width: 320px; }
+        .story-text { color: #f1c40f; font-style: italic; margin: 15px 0; font-size: 12px; max-width: 320px; }
     </style>
 </head>
 <body>
-
-<div id="intro-screen" class="overlay">
-    <h1 style="color:#e74c3c; margin-top:10px;">SLENDERHUNT</h1>
-    <p class="story-text">THE SUBURBS HAVE FALLEN. Reality is warped. Select an operative to detonate the Singularity Core at Depth 10.</p>
-    
-    <div class="card" onclick="setupGame('Soldier', 5, 2, true, false, false, '#3498db')">
-        <div class="portrait" style="background: #3498db;"><div style="width:20px;height:20px;background:#FFDBAC;margin:5px auto;"></div></div>
-        <div><b>STRIKER - VETERAN</b><p>Standard issue. Can kick bombs with hydraulic boots. Sturdy and reliable.</p></div>
-    </div>
-    <div class="card" onclick="setupGame('Ninja', 3, 3, false, true, true, '#2ecc71')">
-        <div class="portrait" style="background: #2ecc71;"><div style="width:20px;height:20px;background:#222;margin:5px auto;"></div></div>
-        <div><b>SHADOW - INFILTRATOR</b><p>Can phase through warped matter (bricks). Remote detonator included.</p></div>
-    </div>
-    <div class="card" onclick="setupGame('Tank', 10, 5, false, false, true, '#e67e22')">
-        <div class="portrait" style="background: #e67e22;"><div style="width:24px;height:24px;background:#444;margin:3px auto;"></div></div>
-        <div><b>COLOSSUS - HEAVY</b><p>Bio-augmented health. High explosive range. Slow but unstoppable.</p></div>
-    </div>
-</div>
-
-<div id="death-screen" class="overlay hidden" style="justify-content: center;">
-    <h1 style="color:#e74c3c; margin-bottom:20px;">BIO-SIGNS LOST</h1>
-    <p class="story-text">The Slender-Virus has consumed your physical form. Your mission ends here.</p>
-    <div class="card" onclick="location.reload()" style="background:#e74c3c; color:white; justify-content: center; border:none;"><b>REDEPLOY OPERATIVE</b></div>
-</div>
-
-<div id="shop-screen" class="overlay hidden" style="justify-content: center;">
-    <h2 style="color:#f1c40f; margin-bottom:10px;">SECTOR SECURE</h2>
-    <p id="lore-body" class="story-text"></p>
-    <div class="card" onclick="buy('hp')"><b>STIM-PACK ($100)</b><p>Restore 1 HP via nano-bots.</p></div>
-    <div class="card" onclick="buy('range')"><b>BLAST CORE ($75)</b><p>Increase explosion radius.</p></div>
-    <div class="card" onclick="nextStage()" style="background:#27ae60; color:white; justify-content: center;"><b>VENTURE DEEPER</b></div>
-</div>
 
 <div id="ui-bar">
     <div>DEPTH: <span id="stage-txt">1</span>/10</div>
     <div>HP: <span id="hp-txt">0</span></div>
     <div>GOLD: $<span id="gold-txt">0</span></div>
+</div>
+
+<div id="intro-screen" class="overlay">
+    <h1 style="color:#e74c3c;">SLENDERHUNT</h1>
+    <p class="story-text">THE SUBURBS HAVE FALLEN. Select your operative to detonate the Singularity Core at Depth 10.</p>
+    <div class="card" onclick="setupGame('Soldier', 5, 2, true, false, false, '#3498db')">
+        <div class="portrait" style="background:#3498db"></div><div><b>STRIKER</b><p>Kick Power | HP: 5</p></div>
+    </div>
+    <div class="card" onclick="setupGame('Ninja', 3, 3, false, true, true, '#2ecc71')">
+        <div class="portrait" style="background:#2ecc71"></div><div><b>SHADOW</b><p>Phase & Remote | HP: 3</p></div>
+    </div>
+    <div class="card" onclick="setupGame('Tank', 10, 5, false, false, true, '#e67e22')">
+        <div class="portrait" style="background:#e67e22"></div><div><b>COLOSSUS</b><p>High Range | HP: 10</p></div>
+    </div>
+</div>
+
+<div id="death-screen" class="overlay hidden">
+    <h1 style="color:#e74c3c;">BIO-SIGNS LOST</h1>
+    <p class="story-text">The Slender has consumed you.</p>
+    <div class="card" onclick="location.reload()" style="background:#e74c3c; color:white; justify-content:center;"><b>REDEPLOY</b></div>
+</div>
+
+<div id="shop-screen" class="overlay hidden">
+    <h2 style="color:#f1c40f;">SECTOR SECURE</h2>
+    <p id="lore-body" class="story-text"></p>
+    <div class="card" onclick="buy('hp')"><b>STIM-PACK ($100)</b></div>
+    <div class="card" onclick="buy('range')"><b>BLAST CORE ($75)</b></div>
+    <div class="card" onclick="nextStage()" style="background:#27ae60; color:white; justify-content:center;"><b>VENTURE DEEPER</b></div>
 </div>
 
 <div id="game-area"><canvas id="gameCanvas"></canvas></div>
@@ -88,7 +88,7 @@
     let player = { x: 1, y: 1, hp: 0, range: 2, invuln: 0, color: '#fff' };
     let stage = 1, active = false, frame = 0, audioCtx = null;
 
-    const LORE = ["","Static leaks from the walls.","They whisper in the wires.","Reality is losing its grip.","Gatekeeper detected.","The sky is black, the air is ozone.","Mutants move faster here.","Phantoms bleed through the bricks.","The Core's heartbeat pulses.","END OF THE LINE."];
+    const LORE = ["","Depth 2 is colder.","They whisper in the wires.","Reality is decaying.","Gatekeeper detected.","The sky is black.","Mutants are faster.","Phantoms in the bricks.","Heartbeat pulses.","FINAL DEPTH."];
 
     function initAudio() { if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
     function sfx(freq, type, dur, vol=0.05) {
@@ -106,7 +106,8 @@
         initAudio();
         Object.assign(player, { name, hp, range, canKick: kick, canPhase: phase, remote: remote, color, x:1, y:1 });
         document.getElementById('intro-screen').classList.add('hidden');
-        buildLevel(); active = true; updateUI();
+        buildLevel();
+        active = true;
     }
 
     function buildLevel() {
@@ -119,59 +120,58 @@
                 else grid[r][c] = (Math.random() < 0.3 && !(r < 3 && c < 3)) ? 2 : 0;
             }
         }
-        if (isBoss) {
-            enemies.push({ x: 9, y: 9, dx: -1, dy: 0, t: 0, speed: (stage === 10 ? 10 : 15), hp: (stage === 10 ? 50 : 20), isBoss: true, trait: 'boss' });
-        } else {
+        if (isBoss) enemies.push({ x: 9, y: 9, dx: -1, dy: 0, t: 0, speed: (stage === 10 ? 10 : 15), hp: (stage === 10 ? 50 : 20), isBoss: true });
+        else {
             let bricks = [];
             for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) if(grid[r][c]===2) bricks.push({r,c});
             if(bricks.length) grid[bricks[0].r][bricks[0].c] = 4;
             for(let i=0; i < stage + 1; i++) {
                 let rx, ry; do { rx = Math.floor(Math.random() * COLS); ry = Math.floor(Math.random() * ROWS); } while(grid[ry][rx] !== 0 || (rx < 4 && ry < 4));
-                let trait = (stage > 6 && Math.random() > 0.6) ? 'ghost' : ((stage > 3 && Math.random() > 0.7) ? 'sprinter' : 'grunt');
+                let trait = (stage > 4 && Math.random() > 0.7) ? 'sprinter' : 'grunt';
                 enemies.push({ x: rx, y: ry, dx: 1, dy: 0, t: 0, speed: (trait==='sprinter'?20:40), hp: 1, trait: trait });
             }
         }
     }
 
-    function buy(item) {
-        if (item === 'hp' && gold >= 100) { gold -= 100; player.hp++; sfx(800, 'sine', 0.2); }
-        if (item === 'range' && gold >= 75) { gold -= 75; player.range++; sfx(800, 'sine', 0.2); }
-        updateUI();
+    function updateStats() {
+        document.getElementById('hp-txt').innerText = player.hp;
+        document.getElementById('gold-txt').innerText = gold;
+        document.getElementById('stage-txt').innerText = stage;
+        if(player.hp <= 0 && active) {
+            active = false;
+            document.getElementById('death-screen').classList.remove('hidden');
+        }
     }
 
     function handleMove(dx, dy) {
         if(!active) return;
         let nx = player.x + dx, ny = player.y + dy;
         let bAt = bombs.find(b => b.x === nx && b.y === ny);
-        
         if(bAt && player.canKick) {
             sfx(200, 'sine', 0.1);
             let si = setInterval(() => {
                 let bx = bAt.x + dx, by = bAt.y + dy;
-                let hitEnemy = enemies.find(e => e.x === bx && e.y === by);
-                if(grid[by] && grid[by][bx] === 0 && !bombs.find(ob => ob.x === bx && ob.y === by) && !hitEnemy) { 
-                    bAt.x = bx; bAt.y = by; 
-                } else { clearInterval(si); }
-            }, 80); 
-            return;
+                let hitE = enemies.find(e => e.x === bx && e.y === by);
+                if(grid[by] && grid[by][bx] === 0 && !bombs.find(ob => ob.x === bx && ob.y === by) && !hitE) { bAt.x = bx; bAt.y = by; }
+                else clearInterval(si);
+            }, 80); return;
         } 
         if(!grid[ny] || grid[ny][nx] === 1 || bAt) return;
         if((grid[ny][nx] === 2 || grid[ny][nx] === 4) && !player.canPhase) return;
         player.x = nx; player.y = ny;
         if(grid[ny][nx] === 3 && enemies.length === 0) {
-            if(stage === 10) { alert("SINGULARITY DETONATED. WORLD RESET."); location.reload(); return; }
             active = false; 
-            document.getElementById('lore-body').innerText = LORE[stage] || "...Static...";
+            document.getElementById('lore-body').innerText = LORE[stage] || "...";
             document.getElementById('shop-screen').classList.remove('hidden'); 
-            updateUI();
+            document.getElementById('shop-gold').innerText = gold;
         }
     }
 
     function handleBombAction() {
-        if(!active) return;
+        if(!active || bombs.length >= 3) return;
         if(player.remote && bombs.length > 0) {
             while(bombs.length > 0) { let b = bombs.shift(); explode(b.x, b.y); }
-        } else if(bombs.length < 3) {
+        } else {
             if(!bombs.find(b => b.x === player.x && b.y === player.y)) {
                 bombs.push({ x: player.x, y: player.y, timer: player.remote ? 9999 : 100 });
                 sfx(100, 'square', 0.1);
@@ -190,28 +190,15 @@
                 enemies.forEach((e, idx) => {
                     if (e.x === ex && e.y === ey) { e.hp--; if (e.hp <= 0) { if (e.isBoss) grid[e.y][e.x] = 3; enemies.splice(idx, 1); gold += 50; } }
                 });
-                if(player.x === ex && player.y === ey) takeHit();
+                if(player.x === ex && player.y === ey && player.invuln <= 0) { player.hp--; player.invuln = 60; sfx(40, 'sine', 0.8); }
             }
         });
-        updateUI();
     }
 
-    function takeHit() {
-        if(player.invuln > 0) return;
-        player.hp--; sfx(40, 'sine', 0.8);
-        if(player.hp <= 0) {
-            player.hp = 0;
-            active = false;
-            document.getElementById('death-screen').classList.remove('hidden');
-        } else {
-            player.invuln = 60;
-        }
-    }
-
-    function updateUI() {
-        document.getElementById('hp-txt').innerText = player.hp;
-        document.getElementById('gold-txt').innerText = gold;
-        document.getElementById('stage-txt').innerText = stage;
+    function buy(item) {
+        if (item === 'hp' && gold >= 100) { gold -= 100; player.hp++; sfx(800, 'sine', 0.2); }
+        if (item === 'range' && gold >= 75) { gold -= 75; player.range++; sfx(800, 'sine', 0.2); }
+        document.getElementById('shop-gold').innerText = gold;
     }
 
     function nextStage() { stage++; document.getElementById('shop-screen').classList.add('hidden'); buildLevel(); active = true; }
@@ -221,19 +208,18 @@
         const cx = x * TILE + TILE/2, cy = y * TILE + TILE/2;
         const walk = Math.sin(frame * 0.2) * 3;
         const sm = isBoss ? 1.5 : 1;
-        ctx.fillStyle = "#111"; ctx.fillRect(cx - (6*sm), cy + (8*sm) + walk, 5*sm, 6*sm);
-        ctx.fillRect(cx + (1*sm), cy + (8*sm) - walk, 5*sm, 6*sm);
-        let c = isEnemy ? (trait==='sprinter'?'#e74c3c':(trait==='ghost'?'#8e44ad':'#333')) : color;
+        ctx.fillStyle = "#111"; ctx.fillRect(cx-(6*sm), cy+(8*sm)+walk, 5*sm, 6*sm);
+        ctx.fillRect(cx+(1*sm), cy+(8*sm)-walk, 5*sm, 6*sm);
+        let c = isEnemy ? (trait==='sprinter'?'#e74c3c':'#333') : color;
         if(isBoss) c = "#000";
-        ctx.fillStyle = c; ctx.fillRect(cx - (8*sm), cy - (4*sm), 16*sm, 14*sm);
-        ctx.fillStyle = "#FFDBAC"; ctx.fillRect(cx - (6*sm), cy - (14*sm), 12*sm, 11*sm);
-        ctx.fillStyle = isEnemy ? "#c0392b" : "#1a1a1a"; ctx.fillRect(cx - (7*sm), cy - (15*sm), 14*sm, 6*sm);
+        ctx.fillStyle = c; ctx.fillRect(cx-(8*sm), cy-(4*sm), 16*sm, 14*sm);
+        ctx.fillStyle = "#FFDBAC"; ctx.fillRect(cx-(6*sm), cy-(14*sm), 12*sm, 11*sm);
+        ctx.fillStyle = isEnemy ? "#c0392b" : "#1a1a1a"; ctx.fillRect(cx-(7*sm), cy-(15*sm), 14*sm, 6*sm);
         if(isBoss) { ctx.fillStyle = "#f00"; ctx.fillRect(x*TILE, y*TILE-10, (hp/(stage===10?50:20))*TILE, 4); }
     }
 
     function loop() {
-        ctx.fillStyle = (stage > 5) ? '#1a1a1a' : '#2d5a27'; 
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = (stage > 5) ? '#1a1a1a' : '#2d5a27'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         if(active) {
             for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) {
                 let x = c*TILE, y = r*TILE;
@@ -252,19 +238,16 @@
                 drawHuman(e.x, e.y, "#e74c3c", frame, 0, true, e.isBoss, e.hp, e.trait);
                 e.t++; if(e.t > e.speed) {
                     let nx = e.x + e.dx, ny = e.y + e.dy;
-                    let canGo = (grid[ny] && grid[ny][nx] === 0);
-                    if(e.trait === 'ghost' && grid[ny] && (grid[ny][nx] === 2)) canGo = true;
-                    if(canGo && !bombs.find(b => b.x === nx && b.y === ny)) { e.x = nx; e.y = ny; }
+                    if(grid[ny] && grid[ny][nx] === 0 && !bombs.find(b => b.x === nx && b.y === ny)) { e.x = nx; e.y = ny; }
                     else { let d = [[0,1],[0,-1],[1,0],[-1,0]][Math.floor(Math.random()*4)]; e.dx = d[0]; e.dy = d[1]; }
                     e.t = 0;
                 }
-                if(e.x === player.x && e.y === player.y) takeHit();
+                if(e.x === player.x && e.y === player.y) { if(player.invuln <= 0) { player.hp--; player.invuln = 60; sfx(40, 'sine', 0.8); } }
             });
             drawHuman(player.x, player.y, player.color, frame, player.invuln, false, false);
             if(player.invuln > 0) player.invuln--;
-            updateUI();
         }
-        frame++; requestAnimationFrame(loop);
+        updateStats(); frame++; requestAnimationFrame(loop);
     }
     loop();
 </script>
