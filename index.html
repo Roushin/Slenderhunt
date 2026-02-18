@@ -3,62 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SlenderHunt: The Final Chapter</title>
+    <title>SlenderHunt: Final Edition</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body { background: #000; color: #eee; font-family: 'Courier New', Courier, monospace; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-        
-        #ui-bar { width: 100%; max-width: 400px; padding: 10px; display: flex; justify-content: space-between; background: #1a1a1a; border-bottom: 2px solid #333; font-size: 12px; font-weight: bold; color: #f1c40f; }
-        canvas { background: #2ecc71; display: block; border: 4px solid #333; margin: 5px 0; touch-action: none; image-rendering: pixelated; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-
-        .controls { display: grid; grid-template-columns: repeat(3, 80px); grid-gap: 12px; padding: 15px; }
-        .btn { width: 80px; height: 80px; background: #34495e; border-radius: 15px; display: flex; align-items: center; justify-content: center; user-select: none; border-bottom: 6px solid #1a252f; cursor: pointer; font-size: 16px; font-weight: bold; color: white; }
+        #ui-bar { width: 100%; max-width: 400px; padding: 10px; display: flex; justify-content: space-between; background: #111; border-bottom: 2px solid #333; font-size: 12px; color: #f1c40f; }
+        canvas { background: #2ecc71; display: block; border: 4px solid #333; margin: 5px 0; touch-action: none; image-rendering: pixelated; }
+        .controls { display: grid; grid-template-columns: repeat(3, 80px); grid-gap: 12px; padding: 10px; }
+        .btn { width: 80px; height: 80px; background: #34495e; border-radius: 15px; display: flex; align-items: center; justify-content: center; user-select: none; border-bottom: 6px solid #1a252f; cursor: pointer; font-weight: bold; color: white; }
         .btn:active { border-bottom: 0; transform: translateY(4px); background: #2c3e50; }
         #bomb-btn { background: #e74c3c; border-bottom-color: #c0392b; }
-
-        .overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
-        .title-text { font-size: 42px; color: #e74c3c; text-shadow: 3px 3px #550000; margin-bottom: 30px; letter-spacing: 5px; }
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
         .card { background: #1a1a1a; padding: 15px; margin: 8px; border-radius: 12px; width: 100%; max-width: 320px; border: 2px solid #444; cursor: pointer; }
         .card b { color: #f1c40f; font-size: 18px; }
-        .card p { font-size: 11px; color: #bdc3c7; margin-top: 5px; }
-        
         .hidden { display: none !important; }
-        .victory { color: #f1c40f; font-size: 32px; margin-bottom: 20px; }
+        h1 { font-size: 38px; color: #e74c3c; margin-bottom: 20px; letter-spacing: 3px; }
     </style>
 </head>
 <body>
 
 <div id="intro-screen" class="overlay">
-    <h1 class="title-text">SLENDERHUNT</h1>
-    <p style="margin-bottom: 20px; color: #888;">SELECT YOUR AGENT</p>
-    <div class="card" onclick="setupGame('Classic', 5, 2, true, false, false, '#3498db')">
-        <b>CLASSIC</b>
-        <p>HP: 5 | KICK BOMB | TIMED</p>
-    </div>
-    <div class="card" onclick="setupGame('Ninja', 3, 3, false, true, true, '#2ecc71')">
-        <b>NINJA</b>
-        <p>HP: 3 | PHASE BRICKS | REMOTE</p>
-    </div>
-    <div class="card" onclick="setupGame('Tank', 10, 5, false, false, true, '#e67e22')">
-        <b>HEAVY TANK</b>
-        <p>HP: 10 | MASSIVE RANGE | REMOTE</p>
-    </div>
+    <h1>SLENDERHUNT</h1>
+    <div class="card" onclick="setupGame('Classic', 5, 2, true, false, false, '#3498db')"><b>CLASSIC</b><p>HP: 5 | KICK BOMB</p></div>
+    <div class="card" onclick="setupGame('Ninja', 3, 3, false, true, true, '#2ecc71')"><b>NINJA</b><p>HP: 3 | PHASE BRICKS</p></div>
+    <div class="card" onclick="setupGame('Tank', 10, 5, false, false, true, '#e67e22')"><b>TANK</b><p>HP: 10 | HUGE RANGE</p></div>
+</div>
+
+<div id="gameover-screen" class="overlay hidden">
+    <h1 style="color:white">TERMINATED</h1>
+    <p id="death-msg">You were consumed by the void.</p>
+    <div class="card" onclick="location.reload()"><b>RESTART MISSION</b></div>
 </div>
 
 <div id="victory-screen" class="overlay hidden">
-    <h1 class="victory">MISSION ACCOMPLISHED</h1>
-    <p>The Void Stalker has been neutralized.</p>
-    <div class="card" onclick="location.reload()" style="margin-top:30px;"><b>PLAY AGAIN</b></div>
+    <h1 style="color:#f1c40f">VICTORY</h1>
+    <p>Target Neutralized.</p>
+    <div class="card" onclick="location.reload()"><b>PLAY AGAIN</b></div>
 </div>
 
 <div id="ui-bar">
-    <div>STAGE: <span id="stage-txt">1</span></div>
+    <div>STAGE: <span id="stage-txt">1</span>/5</div>
     <div>HP: <span id="hp-txt">0</span></div>
-    <div>ENEMIES: <span id="en-txt">0</span></div>
+    <div>GOLD: <span id="gold-txt">0</span></div>
 </div>
-
 <canvas id="gameCanvas"></canvas>
-
 <div class="controls">
     <div></div><div class="btn" onclick="handleMove(0,-1)">UP</div><div></div>
     <div class="btn" onclick="handleMove(-1,0)">LEFT</div><div class="btn" id="bomb-btn" onclick="handleBombAction()">BOMB</div><div class="btn" onclick="handleMove(1,0)">RIGHT</div>
@@ -69,18 +57,14 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const TILE = 32, ROWS = 11, COLS = 11;
-    canvas.width = COLS * TILE;
-    canvas.height = ROWS * TILE;
+    canvas.width = COLS * TILE; canvas.height = ROWS * TILE;
 
-    let grid = [], bombs = [], enemies = [], explosions = [];
+    let grid = [], bombs = [], enemies = [], explosions = [], gold = 0;
     let player = { x: 1, y: 1, hp: 0, range: 2, invuln: 0, type: '', canKick: false, canPhase: false, remote: false, color: '#fff' };
     let stage = 1, active = false, frame = 0;
 
     function setupGame(type, hp, range, kick, phase, remote, color) {
-        player.type = type; player.hp = hp; player.range = range;
-        player.canKick = kick; player.canPhase = phase; 
-        player.remote = remote; player.color = color;
-        player.x = 1; player.y = 1; stage = 1;
+        Object.assign(player, { type, hp, range, canKick: kick, canPhase: phase, remote: remote, color: color, x: 1, y: 1 });
         document.getElementById('intro-screen').classList.add('hidden');
         buildLevel();
         active = true;
@@ -88,32 +72,28 @@
 
     function buildLevel() {
         grid = []; bombs = []; enemies = []; explosions = [];
-        const isBossStage = (stage === 5);
-        
+        const isBoss = (stage === 5);
         for (let r = 0; r < ROWS; r++) {
             grid[r] = [];
             for (let c = 0; c < COLS; c++) {
-                if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 || (r % 2 === 0 && c % 2 === 0)) {
-                    grid[r][c] = 1; 
-                } else {
-                    let brickChance = isBossStage ? 0.1 : 0.3;
-                    grid[r][c] = (Math.random() < brickChance && !(r < 3 && c < 3)) ? 2 : 0;
-                }
+                if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 || (r % 2 === 0 && c % 2 === 0)) grid[r][c] = 1;
+                else grid[r][c] = (Math.random() < (isBoss ? 0.15 : 0.3) && !(r < 3 && c < 3)) ? 2 : 0;
             }
         }
-        
-        if (isBossStage) {
-            enemies.push({ x: 9, y: 9, dx: -1, dy: 0, t: 0, speed: 15, hp: 10, isBoss: true });
+        if (isBoss) {
+            enemies.push({ x: 9, y: 9, dx: -1, dy: 0, t: 0, speed: 12, hp: 12, isBoss: true, trait: 'stalker' });
         } else {
             let bricks = [];
             for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) if(grid[r][c]===2) bricks.push({r,c});
-            if(bricks.length) grid[bricks[Math.floor(Math.random()*bricks.length)].r][bricks[0].c] = 4;
-
-            for(let i=0; i < (stage + 1); i++) {
-                let rx, ry; 
-                do { rx = Math.floor(Math.random() * COLS); ry = Math.floor(Math.random() * ROWS); }
-                while(grid[ry][rx] !== 0 || (rx < 4 && ry < 4));
-                enemies.push({ x: rx, y: ry, dx: 1, dy: 0, t: 0, speed: 40, hp: 1, isBoss: false });
+            if(bricks.length) grid[bricks[0].r][bricks[0].c] = 4;
+            for(let i=0; i < stage + 1; i++) {
+                let rx, ry; do { rx = Math.floor(Math.random() * COLS); ry = Math.floor(Math.random() * ROWS); } while(grid[ry][rx] !== 0 || (rx < 4 && ry < 4));
+                let roll = Math.random();
+                enemies.push({ 
+                    x: rx, y: ry, dx: 1, dy: 0, t: 0, 
+                    trait: roll > 0.7 ? 'ghost' : (roll > 0.4 ? 'sprinter' : 'grunt'),
+                    speed: roll > 0.4 ? 25 : 45, hp: 1 
+                });
             }
         }
     }
@@ -122,16 +102,13 @@
         if(!active) return;
         let nx = player.x + dx, ny = player.y + dy;
         let bAt = bombs.find(b => b.x === nx && b.y === ny);
-        if(bAt && player.canKick) { kickBomb(bAt, dx, dy); return; } else if(bAt) return;
-
-        if (grid[ny][nx] === 0 || grid[ny][nx] === 3) {
-            player.x = nx; player.y = ny;
-            if(grid[ny][nx] === 3 && enemies.length === 0) {
-                if(stage === 5) { active = false; document.getElementById('victory-screen').classList.remove('hidden'); return; }
-                stage++; buildLevel();
-            }
-        } else if (player.canPhase && (grid[ny][nx] === 2 || grid[ny][nx] === 4)) {
-            player.x = nx; player.y = ny;
+        if(bAt && player.canKick) { kickBomb(bAt, dx, dy); return; } 
+        if(bAt || grid[ny][nx] === 1) return;
+        if((grid[ny][nx] === 2 || grid[ny][nx] === 4) && !player.canPhase) return;
+        player.x = nx; player.y = ny;
+        if(grid[ny][nx] === 3 && enemies.length === 0) {
+            if(stage === 5) { active = false; document.getElementById('victory-screen').classList.remove('hidden'); return; }
+            stage++; buildLevel();
         }
     }
 
@@ -146,103 +123,89 @@
     function handleBombAction() {
         if(!active) return;
         if(player.remote && bombs.length > 0) {
-            while(bombs.length > 0) { let b = bombs.shift(); triggerExplosion(b.x, b.y); }
+            while(bombs.length > 0) { let b = bombs.shift(); explode(b.x, b.y); }
         } else if(bombs.length < 3) {
-            if(!bombs.find(b => b.x === player.x && b.y === player.y)) {
-                bombs.push({ x: player.x, y: player.y, timer: player.remote ? 9999 : 100 });
-            }
+            if(!bombs.find(b => b.x === player.x && b.y === player.y)) bombs.push({ x: player.x, y: player.y, timer: player.remote ? 9999 : 100 });
         }
     }
 
-    function triggerExplosion(bx, by) {
-        let ds = [[0,0],[0,1],[0,-1],[1,0],[-1,0]];
-        ds.forEach(d => {
+    function explode(bx, by) {
+        [[0,0],[0,1],[0,-1],[1,0],[-1,0]].forEach(d => {
             for(let i=0; i <= player.range; i++) {
                 let ex = bx + d[0] * i, ey = by + d[1] * i;
                 if(grid[ey][ex] === 1) break;
                 explosions.push({ x: ex, y: ey, life: 15 });
-                if(grid[ey][ex] === 2 || grid[ey][ex] === 4) { grid[ey][ex] = (grid[ey][ex] === 4) ? 3 : 0; break; }
-                
+                if(grid[ey][ex] === 2 || grid[ey][ex] === 4) {
+                    if(Math.random() > 0.7) gold += 10;
+                    grid[ey][ex] = (grid[ey][ex] === 4) ? 3 : 0; break; 
+                }
                 enemies.forEach((e, idx) => {
                     if (e.x === ex && e.y === ey) {
-                        e.hp--;
-                        if (e.hp <= 0) {
-                            if (e.isBoss) grid[e.y][e.x] = 3;
-                            enemies.splice(idx, 1);
-                        }
+                        e.hp--; if (e.hp <= 0) { if (e.isBoss) grid[e.y][e.x] = 3; enemies.splice(idx, 1); gold += 50; }
                     }
                 });
-                if(player.x === ex && player.y === ey) takeDamage();
+                if(player.x === ex && player.y === ey) hit();
             }
         });
     }
 
-    function takeDamage() {
+    function hit() {
         if(player.invuln > 0) return;
         player.hp--; player.invuln = 60;
-        if(player.hp <= 0) location.reload();
+        if(player.hp <= 0) { active = false; document.getElementById('gameover-screen').classList.remove('hidden'); }
     }
 
-    function drawSprite(x, y, type, color, frameOff, hp, isBoss) {
+    function drawSprite(x, y, type, color, frame, hp, trait) {
         const cx = x * TILE + 16, cy = y * TILE + 16;
+        const bounce = Math.sin(frame * 0.1) * 2;
         if(type === 'player') {
-            ctx.fillStyle = "#fff"; ctx.fillRect(x*TILE+8, y*TILE+6, 16, 20);
-            ctx.fillStyle = color; ctx.fillRect(x*TILE+6, y*TILE+2, 20, 10);
-            ctx.fillStyle = "#000"; ctx.fillRect(cx-4, cy-2, 2, 4); ctx.fillRect(cx+2, cy-2, 2, 4);
+            ctx.fillStyle = color; ctx.fillRect(x*TILE+6, y*TILE+4+bounce, 20, 18);
+            ctx.fillStyle = "#FFDBAC"; ctx.fillRect(x*TILE+10, y*TILE+8+bounce, 12, 8);
+            ctx.fillStyle = "#000"; ctx.fillRect(cx-4, cy-4+bounce, 2, 4); ctx.fillRect(cx+2, cy-4+bounce, 2, 4);
         } else if(type === 'enemy') {
-            if (isBoss) {
-                ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(cx, cy, 15, 0, 7); ctx.fill();
-                ctx.fillStyle = "#e74c3c"; ctx.beginPath(); ctx.arc(cx, cy, 12, 0, 7); ctx.fill();
-                ctx.fillStyle = "#f00"; ctx.fillRect(x*TILE, y*TILE-8, (hp/10)*TILE, 4);
-            } else {
-                ctx.fillStyle = "#e74c3c"; ctx.beginPath(); ctx.arc(cx, cy, 10, 0, 7); ctx.fill();
-                ctx.fillStyle = "#fff"; ctx.fillRect(cx-5, cy-5, 3, 3); ctx.fillRect(cx+2, cy-5, 3, 3);
-            }
+            ctx.fillStyle = trait === 'stalker' ? "#000" : (trait === 'ghost' ? "#9b59b6" : "#e74c3c");
+            ctx.beginPath(); ctx.arc(cx, cy+bounce, trait === 'stalker' ? 14 : 10, 0, 7); ctx.fill();
+            ctx.fillStyle = "#fff"; ctx.fillRect(cx-4, cy-4+bounce, 2, 2); ctx.fillRect(cx+2, cy-4+bounce, 2, 2);
+            if(hp > 1) { ctx.fillStyle = "#f00"; ctx.fillRect(x*TILE, y*TILE-6, (hp/12)*TILE, 4); }
         } else if(type === 'bomb') {
-            const s = 12 + Math.sin(frameOff * 0.2) * 2;
-            ctx.fillStyle = player.remote ? "#9b59b6" : "#000";
+            const s = 11 + Math.sin(frame * 0.2) * 2;
+            ctx.fillStyle = player.remote ? "#9b59b6" : "#222";
             ctx.beginPath(); ctx.arc(cx, cy, s, 0, 7); ctx.fill();
-            ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(cx-4, cy-4, 3, 0, 7); ctx.fill();
+            ctx.fillStyle = "#e67e22"; ctx.fillRect(cx-1, cy-s-2, 2, 4);
         }
     }
 
-    function gameLoop() {
+    function loop() {
         ctx.fillStyle = '#2ecc71'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         if(active) {
-            for(let r=0; r<ROWS; r++) {
-                for(let c=0; c<COLS; c++) {
-                    let x = c*TILE, y = r*TILE;
-                    if(grid[r][c] === 1) { ctx.fillStyle='#333'; ctx.fillRect(x,y,TILE,TILE); }
-                    else if(grid[r][c] === 2 || grid[r][c] === 4) { ctx.fillStyle='#a64'; ctx.fillRect(x+2,y+2,TILE-4,TILE-4); }
-                    else if(grid[r][c] === 3) { ctx.fillStyle='#2ecc71'; ctx.strokeStyle="#fff"; ctx.strokeRect(x+8,y+8,TILE-16,TILE-16); }
-                }
+            for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) {
+                let x = c*TILE, y = r*TILE;
+                if(grid[r][c] === 1) { ctx.fillStyle='#2c3e50'; ctx.fillRect(x,y,TILE,TILE); }
+                else if(grid[r][c] === 2 || grid[r][c] === 4) { ctx.fillStyle='#7e522a'; ctx.fillRect(x+2,y+2,TILE-4,TILE-4); ctx.strokeRect(x+2,y+2,TILE-4,TILE-4); }
+                else if(grid[r][c] === 3) { ctx.fillStyle='#111'; ctx.fillRect(x+4,y+4,TILE-8,TILE-8); ctx.strokeStyle="#f1c40f"; ctx.strokeRect(x+6,y+6,TILE-12,TILE-12); }
             }
-            bombs.forEach((b, i) => {
-                drawSprite(b.x, b.y, 'bomb', null, frame);
-                if(!player.remote) { b.timer--; if(b.timer <= 0) { triggerExplosion(b.x, b.y); bombs.splice(i, 1); } }
-            });
-            ctx.fillStyle = 'rgba(255,100,0,0.7)';
-            explosions.forEach((ex, i) => { ctx.fillRect(ex.x*TILE, ex.y*TILE, TILE, TILE); ex.life--; if(ex.life <= 0) explosions.splice(i, 1); });
+            bombs.forEach((b, i) => { drawSprite(b.x, b.y, 'bomb', null, frame); if(!player.remote) { b.timer--; if(b.timer <= 0) { explode(b.x, b.y); bombs.splice(i, 1); } } });
+            ctx.fillStyle = 'rgba(255,255,255,0.8)'; explosions.forEach((ex, i) => { ctx.fillRect(ex.x*TILE, ex.y*TILE, TILE, TILE); ex.life--; if(ex.life <= 0) explosions.splice(i, 1); });
             enemies.forEach(e => {
-                drawSprite(e.x, e.y, 'enemy', null, frame, e.hp, e.isBoss);
+                drawSprite(e.x, e.y, 'enemy', null, frame, e.hp, e.trait);
                 e.t++; if(e.t > e.speed) {
                     let nx = e.x + e.dx, ny = e.y + e.dy;
-                    if(grid[ny][nx] === 0 && !bombs.find(b => b.x === nx && b.y === ny)) { e.x = nx; e.y = ny; }
+                    let canGo = grid[ny] && (grid[ny][nx] === 0 || (e.trait === 'ghost' && grid[ny][nx] === 2));
+                    if(canGo && !bombs.find(b => b.x === nx && b.y === ny)) { e.x = nx; e.y = ny; }
                     else { let d = [[0,1],[0,-1],[1,0],[-1,0]][Math.floor(Math.random()*4)]; e.dx = d[0]; e.dy = d[1]; }
                     e.t = 0;
                 }
-                if(e.x === player.x && e.y === player.y) takeDamage();
+                if(e.x === player.x && e.y === player.y) hit();
             });
-            if(player.invuln % 6 < 3) drawSprite(player.x, player.y, 'player', player.color);
+            if(player.invuln % 6 < 3) drawSprite(player.x, player.y, 'player', player.color, frame);
             if(player.invuln > 0) player.invuln--;
             document.getElementById('hp-txt').innerText = player.hp;
             document.getElementById('stage-txt').innerText = stage;
-            document.getElementById('en-txt').innerText = enemies.length;
+            document.getElementById('gold-txt').innerText = gold;
         }
-        frame++;
-        requestAnimationFrame(gameLoop);
+        frame++; requestAnimationFrame(loop);
     }
-    gameLoop();
+    loop();
 </script>
 </body>
 </html>
