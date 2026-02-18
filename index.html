@@ -3,45 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bomber Hero Fixed</title>
+    <title>Bomber Hero: RPG Edition</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { background: #111; color: #fff; font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-        #ui { width: 100%; max-width: 400px; padding: 10px; display: flex; justify-content: space-between; background: #333; border-bottom: 2px solid #555; font-weight: bold; }
-        canvas { background: #2ecc71; display: block; border: 4px solid #444; margin: 5px 0; touch-action: none; image-rendering: pixelated; }
-        .controls { display: grid; grid-template-columns: repeat(3, 85px); grid-gap: 12px; padding: 10px; }
-        .btn { width: 85px; height: 85px; background: #34495e; border-radius: 15px; display: flex; align-items: center; justify-content: center; user-select: none; border-bottom: 6px solid #1a252f; cursor: pointer; font-size: 16px; font-weight: bold; }
+        body { background: #111; color: #fff; font-family: 'Courier New', Courier, monospace; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+        #ui { width: 100%; max-width: 400px; padding: 8px; display: grid; grid-template-columns: 1fr 1fr; background: #333; border-bottom: 2px solid #555; font-size: 11px; }
+        canvas { background: #2ecc71; display: block; border: 4px solid #444; margin: 5px 0; touch-action: none; }
+        .controls { display: grid; grid-template-columns: repeat(3, 80px); grid-gap: 10px; padding: 10px; }
+        .btn { width: 80px; height: 80px; background: #34495e; border-radius: 15px; display: flex; align-items: center; justify-content: center; user-select: none; border-bottom: 6px solid #1a252f; cursor: pointer; font-size: 14px; font-weight: bold; }
         .btn:active { border-bottom: 0; transform: translateY(4px); background: #2c3e50; }
         #bomb-btn { background: #e74c3c; border-bottom-color: #c0392b; }
-        #overlay { position: fixed; inset: 0; background: #111; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        .card { background: #2c3e50; padding: 20px; margin: 10px; border-radius: 15px; width: 100%; max-width: 320px; text-align: center; border: 2px solid #555; cursor: pointer; }
+        
+        /* Overlays */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        .card { background: #2c3e50; padding: 15px; margin: 8px; border-radius: 12px; width: 100%; max-width: 300px; border: 2px solid #555; cursor: pointer; }
+        .hidden { display: none !important; }
+        .shop-item { display: flex; justify-content: space-between; align-items: center; background: #34495e; padding: 10px; margin: 5px; border-radius: 8px; width: 100%; border: 1px solid #7f8c8d; }
     </style>
 </head>
 <body>
 
-<div id="overlay">
-    <h1 style="margin-bottom:20px; color:#f1c40f;">BOMBER HERO</h1>
-    <div class="card" onclick="forceStart('Knight', 5, 2)">
-        <b>CLASSIC BOMBER</b>
-        <small>HP: 5 | POWER: KICK</small>
-    </div>
-    <div class="card" onclick="forceStart('Ninja', 2, 3)">
-        <b>STEALTH BOMBER</b>
-        <small>HP: 2 | POWER: PHASE</small>
-    </div>
+<div id="start-overlay" class="overlay">
+    <h1 style="color:#f1c40f; margin-bottom:10px;">BOMBER HERO</h1>
+    <div class="card" onclick="start('Classic', 5, 2, 1, 45, '#fff')"><b>CLASSIC</b><br><small>Balanced / Kick</small></div>
+    <div class="card" onclick="start('Ninja', 2, 3, 2, 25, '#2ecc71')"><b>NINJA</b><br><small>Fast / Phase</small></div>
+    <div class="card" onclick="start('Tank', 10, 4, 1, 60, '#e67e22')"><b>TANK</b><br><small>Heavy / Range</small></div>
+</div>
+
+<div id="shop-overlay" class="overlay hidden">
+    <h2 style="color:#f1c40f;">MERCHANT</h2>
+    <p>Gold: <span id="shop-gold">0</span></p>
+    <div class="shop-item" onclick="buy('mine')"><span>Landmine (x1)</span> <b>$50</b></div>
+    <div class="shop-item" onclick="buy('ice')"><span>Ice Bomb (x1)</span> <b>$40</b></div>
+    <div class="shop-item" onclick="buy('hp')"><span>Heal +1 HP</span> <b>$100</b></div>
+    <div class="card" onclick="nextStage()" style="background:#27ae60">NEXT LEVEL</div>
 </div>
 
 <div id="ui">
-    <div id="st">STAGE: 1</div>
-    <div id="hp" style="color:#ff7675">HP: -</div>
-    <div id="en">ENEMIES: -</div>
+    <div>STAGE: <span id="st">1</span> | HP: <span id="hp">0</span></div>
+    <div style="text-align:right">GOLD: <span id="gd">0</span> | SCORE: <span id="sc">0</span></div>
+    <div id="special-ui" style="grid-column: span 2; color:#3498db; margin-top:4px;">
+        Mines: <span id="mine-ct">0</span> | Ice: <span id="ice-ct">0</span>
+    </div>
 </div>
 
 <canvas id="gameCanvas"></canvas>
 
 <div class="controls">
     <div></div><div class="btn" onclick="move(0,-1)">UP</div><div></div>
-    <div class="btn" onclick="move(-1,0)">LEFT</div><div class="btn" id="bomb-btn" onclick="handleBomb()">BOMB</div><div class="btn" onclick="move(1,0)">RIGHT</div>
+    <div class="btn" onclick="move(-1,0)">LEFT</div><div class="btn" id="bomb-btn" onclick="dropBomb()">BOMB</div><div class="btn" onclick="move(1,0)">RIGHT</div>
     <div></div><div class="btn" onclick="move(0,1)">DOWN</div><div></div>
 </div>
 
@@ -49,165 +59,167 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const TILE = 32, ROWS = 11, COLS = 11;
-    canvas.width = COLS * TILE;
-    canvas.height = ROWS * TILE;
+    canvas.width = COLS * TILE; canvas.height = ROWS * TILE;
 
-    let G = [], B = [], E = [], X = [], P_UPS = [];
-    let P = { x: 1, y: 1, hp: 0, range: 2, type: '', inv: 0, maxBombs: 1 };
+    let grid = [], bombs = [], enemies = [], explosions = [], items = [], boss = null;
+    let p = { x: 1, y: 1, hp: 0, range: 2, maxB: 1, spd: 45, color: '#fff', gold: 0, score: 0, mines: 0, ice: 0 };
     let stage = 1, active = false, frame = 0;
 
-    function forceStart(type, hp, range) {
-        P.type = type; P.hp = hp; P.range = range; P.maxBombs = 1;
-        P.x = 1; P.y = 1; P.inv = 0;
-        document.getElementById('overlay').style.display = 'none';
-        buildLevel();
+    function start(type, hp, range, mb, spd, color) {
+        Object.assign(p, { type, hp, range, maxB: mb, spd, color, gold: 0, score: 0, mines: 0, ice: 0 });
+        document.getElementById('start-overlay').classList.add('hidden');
+        initLevel();
         active = true;
     }
 
-    function buildLevel() {
-        G = []; B = []; E = []; X = []; P_UPS = [];
+    function buy(item) {
+        if(item === 'mine' && p.gold >= 50) { p.gold -= 50; p.mines++; }
+        if(item === 'ice' && p.gold >= 40) { p.gold -= 40; p.ice++; }
+        if(item === 'hp' && p.gold >= 100) { p.gold -= 100; p.hp++; }
+        updateUI();
+    }
+
+    function initLevel() {
+        grid = []; bombs = []; enemies = []; explosions = []; items = []; boss = null;
+        p.x = 1; p.y = 1;
         for (let r = 0; r < ROWS; r++) {
-            G[r] = [];
+            grid[r] = [];
             for (let c = 0; c < COLS; c++) {
-                if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 || (r % 2 === 0 && c % 2 === 0)) G[r][c] = 1;
-                else G[r][c] = (Math.random() < 0.35 && !(r < 3 && c < 3)) ? 2 : 0;
+                if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 || (r % 2 === 0 && c % 2 === 0)) grid[r][c] = 1;
+                else grid[r][c] = (Math.random() < 0.35 && !(r < 3 && c < 3)) ? 2 : 0;
             }
         }
-        
-        let bricks = [];
-        for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) if(G[r][c]===2) bricks.push({r,c});
-        if(bricks.length) G[bricks[0].r][bricks[0].c] = 4; // Door
-
-        for(let i=0; i<stage+1; i++) {
-            let rx, ry; 
-            do { rx=Math.floor(Math.random()*COLS); ry=Math.floor(Math.random()*ROWS); }
-            while(G[ry][rx]!==0 || (rx<4 && ry<4));
-            E.push({x:rx, y:ry, dx:1, dy:0, t:0});
+        if (stage % 5 === 0) boss = { x: COLS-2, y: ROWS-2, hp: 5+stage, dx: 1, dy: 0, t: 0 };
+        else {
+            let br = []; for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(grid[r][c]===2) br.push({r,c});
+            if(br.length) grid[br[0].r][br[0].c] = 4;
+            for(let i=0; i<Math.min(stage+1, 8); i++) {
+                let rx, ry; do { rx=Math.floor(Math.random()*COLS); ry=Math.floor(Math.random()*ROWS); } while(grid[ry][rx]!==0 || (rx<4 && ry<4));
+                let type = Math.random();
+                enemies.push({x:rx, y:ry, dx:1, dy:0, t:0, speed: type>0.8?20:45, color: type>0.8?'#000':(type>0.6?'#9b59b6':'#e74c3c'), phase: type>0.6, frozen: 0});
+            }
         }
+        updateUI();
     }
 
     function move(dx, dy) {
         if(!active) return;
-        let nx = P.x + dx, ny = P.y + dy;
-        
-        let bomb = B.find(b => b.x === nx && b.y === ny);
-        if(bomb && P.type === 'Knight') { slideBomb(bomb, dx, dy); return; }
-        else if (bomb) return;
-
-        if(G[ny][nx] === 1) return;
-        if((G[ny][nx] === 2 || G[ny][nx] === 4) && P.type !== 'Ninja') return;
-        
-        P.x = nx; P.y = ny;
-        if(G[ny][nx] === 3 && E.length === 0) { stage++; buildLevel(); }
-
-        P_UPS = P_UPS.filter(p => {
-            if(p.x === P.x && p.y === P.y) {
-                if(p.type === 'range') P.range++;
-                if(p.type === 'hp') P.hp++;
-                if(p.type === 'count') P.maxBombs++;
+        let nx = p.x + dx, ny = p.y + dy;
+        let bomb = bombs.find(b => b.x === nx && b.y === ny);
+        if(bomb && p.type === 'Classic') { kick(bomb, dx, dy); return; }
+        if(bomb || grid[ny][nx] === 1) return;
+        if((grid[ny][nx] === 2 || grid[ny][nx] === 4) && p.type !== 'Ninja') return;
+        p.x = nx; p.y = ny;
+        if(grid[ny][nx] === 3 && enemies.length === 0 && !boss) { active = false; document.getElementById('shop-overlay').classList.remove('hidden'); }
+        items = items.filter(it => {
+            if(it.x === p.x && it.y === p.y) {
+                if(it.type === 'r') p.range++; else if(it.type === 'h') p.hp++; 
+                else if(it.type === 'b') p.maxB++; else if(it.type === 'g') { p.gold += 20; p.score += 100; }
                 return false;
-            }
-            return true;
+            } return true;
         });
+        updateUI();
     }
 
-    function slideBomb(b, dx, dy) {
-        let si = setInterval(() => {
+    function nextStage() { stage++; document.getElementById('shop-overlay').classList.add('hidden'); initLevel(); active = true; }
+
+    function dropBomb() {
+        if(!active) return;
+        // Priority: Use Special Bombs first if standing on empty tile
+        if(!bombs.find(b => b.x === p.x && b.y === p.y)) {
+            if(p.ice > 0) { bombs.push({x:p.x, y:p.y, t:80, type:'ice'}); p.ice--; }
+            else if(p.mines > 0) { bombs.push({x:p.x, y:p.y, t:9999, type:'mine'}); p.mines--; }
+            else if(bombs.length < p.maxB) bombs.push({x:p.x, y:p.y, t:100, type:'reg'});
+        }
+        updateUI();
+    }
+
+    function kick(b, dx, dy) {
+        let id = setInterval(() => {
             let nx = b.x + dx, ny = b.y + dy;
-            if(G[ny][nx] === 0 && !B.find(ob => ob.x === nx && ob.y === ny)) {
-                b.x = nx; b.y = ny;
-            } else clearInterval(si);
+            if(grid[ny][nx] === 0 && !bombs.find(ob => ob.x === nx && ob.y === ny)) { b.x = nx; b.y = ny; }
+            else clearInterval(id);
         }, 80);
     }
 
-    function handleBomb() {
-        if(!active || B.length >= P.maxBombs) return;
-        if(!B.find(b => b.x === P.x && b.y === P.y)) B.push({x: P.x, y: P.y, t: 100});
-    }
-
-    function triggerExplosion(bx, by) {
-        let ds = [[0,0],[0,1],[0,-1],[1,0],[-1,0]];
-        ds.forEach(d => {
-            for(let i=0; i<=P.range; i++) {
-                let ex = bx + d[0]*i, ey = by + d[1]*i;
-                if(G[ey][ex] === 1) break;
-                X.push({x:ex, y:ey, l:15});
-                if(G[ey][ex] === 2 || G[ey][ex] === 4) {
-                    if(Math.random() < 0.25) {
-                        let r = Math.random();
-                        let type = r < 0.33 ? 'range' : (r < 0.66 ? 'hp' : 'count');
-                        P_UPS.push({x: ex, y: ey, type: type});
-                    }
-                    G[ey][ex] = (G[ey][ex] === 4) ? 3 : 0;
-                    break;
+    function explode(bx, by, type) {
+        const d = [[0,0],[0,1],[0,-1],[1,0],[-1,0]];
+        d.forEach(dir => {
+            for(let i=0; i<=p.range; i++) {
+                let ex = bx+dir[0]*i, ey = by+dir[1]*i;
+                if(grid[ey][ex] === 1) break;
+                explosions.push({x:ex, y:ey, l:15, type});
+                if(grid[ey][ex] === 2 || grid[ey][ex] === 4) {
+                    if(Math.random() < 0.3) items.push({x:ex, y:ey, type: Math.random()<0.5?'g':'r'});
+                    grid[ey][ex] = grid[ey][ex]===4?3:0; break;
                 }
-                E = E.filter(e => e.x !== ex || e.y !== ey);
-                if(P.x === ex && P.y === ey) hit();
+                enemies.forEach(e => {
+                    if(e.x === ex && e.y === ey) {
+                        if(type === 'ice') e.frozen = 180;
+                        else { enemies = enemies.filter(en => en !== e); p.gold += 10; p.score += 50; }
+                    }
+                });
+                if(boss && boss.x === ex && boss.y === ey && type !== 'ice') { boss.hp--; if(boss.hp <= 0) { boss = null; grid[ROWS-2][COLS-2] = 3; } }
+                if(p.x === ex && p.y === ey) hit();
             }
         });
+        updateUI();
     }
 
-    function hit() {
-        if(P.inv > 0) return;
-        P.hp--; P.inv = 60;
-        if(P.hp <= 0) location.reload();
-    }
+    function hit() { if(p.inv > 0) return; p.hp--; p.inv = 60; if(p.hp <= 0) location.reload(); updateUI(); }
 
-    function drawSprite(x, y, type) {
-        if(type === 'player') {
-            ctx.fillStyle = "#fff"; ctx.fillRect(x+6, y+4, 20, 22); 
-            ctx.fillStyle = P.type === 'Knight' ? "#3498db" : "#2ecc71"; ctx.fillRect(x+4, y+18, 6, 10); ctx.fillRect(x+22, y+18, 6, 10);
-            ctx.fillStyle = "#000"; ctx.fillRect(x+10, y+10, 3, 6); ctx.fillRect(x+19, y+10, 3, 6);
-        } else {
-            ctx.fillStyle = "#e74c3c"; ctx.beginPath(); ctx.arc(x+16, y+16, 12, 0, 7); ctx.fill();
-            ctx.fillStyle = "#fff"; ctx.fillRect(x+10, y+10, 4, 4); ctx.fillRect(x+18, y+10, 4, 4);
-        }
+    function updateUI() {
+        document.getElementById('hp').innerText = p.hp;
+        document.getElementById('st').innerText = stage;
+        document.getElementById('gd').innerText = p.gold;
+        document.getElementById('sc').innerText = p.score;
+        document.getElementById('shop-gold').innerText = p.gold;
+        document.getElementById('mine-ct').innerText = p.mines;
+        document.getElementById('ice-ct').innerText = p.ice;
+        document.getElementById('en').innerText = boss ? "BOSS" : enemies.length;
     }
 
     function draw() {
-        frame++;
         ctx.fillStyle = '#2ecc71'; ctx.fillRect(0,0,canvas.width,canvas.height);
         if(!active) { requestAnimationFrame(draw); return; }
-
-        for(let r=0; r<ROWS; r++) {
-            for(let c=0; c<COLS; c++) {
-                let x=c*TILE, y=r*TILE;
-                if(G[r][c] === 1) { ctx.fillStyle='#7f8c8d'; ctx.fillRect(x,y,TILE,TILE); }
-                else if(G[r][c] === 2 || G[r][c] === 4) { ctx.fillStyle='#d35400'; ctx.fillRect(x+2,y+2,TILE-4,TILE-4); }
-                else if(G[r][c] === 3) { ctx.fillStyle='#27ae60'; ctx.fillRect(x+4,y+4,TILE-8,TILE-8); }
-            }
+        for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+            let x=c*TILE, y=r*TILE;
+            if(grid[r][c]===1) { ctx.fillStyle='#7f8c8d'; ctx.fillRect(x,y,TILE,TILE); }
+            else if(grid[r][c]===2||grid[r][c]===4) { ctx.fillStyle='#d35400'; ctx.fillRect(x+2,y+2,TILE-4,TILE-4); }
+            else if(grid[r][c]===3) { ctx.fillStyle='#2ecc71'; ctx.strokeStyle='#fff'; ctx.strokeRect(x+4,y+4,TILE-8,TILE-8); }
         }
-
-        P_UPS.forEach(p => {
-            ctx.fillStyle = p.type === 'range' ? '#f1c40f' : (p.type === 'hp' ? '#e74c3c' : '#3498db');
-            ctx.beginPath(); ctx.arc(p.x*TILE+16, p.y*TILE+16, 8, 0, 7); ctx.fill();
+        items.forEach(it => {
+            ctx.fillStyle = it.type==='g'?'#f1c40f':it.type==='r'?'#e67e22':'#3498db';
+            ctx.beginPath(); ctx.arc(it.x*TILE+16, it.y*TILE+16, 6, 0, 7); ctx.fill();
         });
-
-        B.forEach(b => { ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(b.x*TILE+16, b.y*TILE+16, 13, 0, 7); ctx.fill(); });
-        X.forEach(x => { ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.fillRect(x.x*TILE, x.y*TILE, TILE, TILE); });
+        bombs.forEach(b => {
+            ctx.fillStyle = b.type==='ice'?'#00f':b.type==='mine'?'#555':'#000';
+            ctx.beginPath(); ctx.arc(b.x*TILE+16, b.y*TILE+16, 12, 0, 7); ctx.fill();
+        });
+        explosions.forEach(x => { ctx.fillStyle=x.type==='ice'?'rgba(0,191,255,0.6)':'rgba(255,255,255,0.7)'; ctx.fillRect(x.x*TILE, x.y*TILE, TILE, TILE); });
+        let allE = boss ? [boss] : enemies;
+        allE.forEach(e => {
+            ctx.fillStyle = e.frozen > 0 ? '#0ff' : (boss ? '#f39c12' : e.color);
+            ctx.beginPath(); ctx.arc(e.x*TILE+16, e.y*TILE+16, boss?14:10, 0, 7); ctx.fill();
+        });
+        if(p.inv % 6 < 3) { ctx.fillStyle="#fff"; ctx.fillRect(p.x*TILE+8, p.y*TILE+4, 16, 18); ctx.fillStyle=p.color; ctx.fillRect(p.x*TILE+6, p.y*TILE+22, 20, 6); }
         
-        E.forEach(e => drawSprite(e.x*TILE, e.y*TILE, 'enemy'));
-        if(P.inv % 6 < 3) drawSprite(P.x*TILE, P.y*TILE, 'player');
-
-        B.forEach((b,i) => { b.t--; if(b.t<=0) { triggerExplosion(b.x, b.y); B.splice(i,1); } });
-        X.forEach((x,i) => { x.l--; if(x.l<=0) X.splice(i,1); });
-        if(P.inv > 0) P.inv--;
-        
-        E.forEach(e => {
-            e.t++; if(e.t > 45) {
+        bombs.forEach((b,i) => {
+            if(b.type === 'mine') { if(allE.find(e => e.x === b.x && e.y === b.y)) { explode(b.x, b.y, b.type); bombs.splice(i,1); } }
+            else { b.t--; if(b.t<=0) { explode(b.x, b.y, b.type); bombs.splice(i,1); } }
+        });
+        explosions.forEach((x,i) => { x.l--; if(x.l<=0) explosions.splice(i,1); });
+        if(p.inv > 0) p.inv--; frame++;
+        allE.forEach(e => {
+            if(e.frozen > 0) { e.frozen--; return; }
+            e.t++; if(e.t > (boss?20:e.speed)) {
                 let nx=e.x+e.dx, ny=e.y+e.dy;
-                // ENEMY BOMB COLLISION CHECK
-                let bombAhead = B.find(b => b.x === nx && b.y === ny);
-                if(G[ny][nx]===0 && !bombAhead) { e.x=nx; e.y=ny; }
+                if(grid[ny]&&(grid[ny][nx]===0||(e.phase&&grid[ny][nx]===2)) && !bombs.find(b=>b.x===nx&&b.y===ny)) { e.x=nx; e.y=ny; }
                 else { e.dx = Math.random()>0.5?1:-1; e.dy = e.dx===0?(Math.random()>0.5?1:-1):0; }
                 e.t=0;
             }
-            if(e.x===P.x && e.y===P.y) hit();
+            if(e.x===p.x && e.y===p.y) hit();
         });
-
-        document.getElementById('hp').innerText = "HP: " + P.hp;
-        document.getElementById('st').innerText = "STAGE: " + stage;
-        document.getElementById('en').innerText = "ENEMIES: " + E.length;
         requestAnimationFrame(draw);
     }
     draw();
